@@ -1,0 +1,7 @@
+-lib tink_macro
+-lib d3-extern
+-cp src
+-cp /home/jason/workspace/enthraler/src/
+-js www/agreeOrDisagree.js
+AgreeOrDisagree
+-dce full

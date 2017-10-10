@@ -1,4 +1,5 @@
 -lib tink_macro
+-lib tink_json
 -lib d3-extern
 -cp src
 -cp /home/jason/workspace/enthraler/src/

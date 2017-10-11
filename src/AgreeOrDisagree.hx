@@ -91,15 +91,17 @@ class AgreeOrDisagree implements HaxeTemplate<AuthorData> {
 		demograph: ParagraphElement,
 		radius: ParagraphElement,
 	};
+	var allowRadiusScaling: Bool;
+	var questionIndex: Null<Int>;
+	var demographicQuestionIndex: Null<Int>;
 
 	// D3 stuff
 	var svg: Selection;
 	var circle: Selection;
 	var nodes: Array<CircleNode>;
 	var xScale: Ordinal;
+	var color: Ordinal;
 	var force: Force; // See https://github.com/d3/d3-3.x-api-reference/blob/master/Force-Layout.md
-	var allowRadiusScaling: Bool;
-	var questionIndex: Null<Int>;
 
 	public function new(environment:Environment) {
 		this.labels = {
@@ -119,16 +121,8 @@ class AgreeOrDisagree implements HaxeTemplate<AuthorData> {
 		// We need to re-parse it if we want it to support our enums correctly.
 		var jsonStr = haxe.Json.stringify(plainJsonData);
 		this.authorData = tink.Json.parse(jsonStr);
-		var groups = [];
-		for (respondant in authorData.responses) {
-			var community = respondant[0];
-			if (groups.indexOf(community) == -1) {
-				groups.push(community);
-			}
-      	}
-		// environment.container.innerHTML = 'Hello ${groups}, I am rendered using Haxe!';
+		this.setDemographicQuestion(0);
 		this.drawTheDots();
-
 		this.toggleRadiusScaling(true);
 		this.showQuestion(null);
 
@@ -145,8 +139,6 @@ class AgreeOrDisagree implements HaxeTemplate<AuthorData> {
 
     function drawTheDots() {
 		setNumberOfGroups(1);
-
-		var color = D3.scale.category10().domain(D3.range(numberOfClusters));
 
 		this.nodes = D3.range(numberOfNodes).map(function(index): CircleNode {
 			var i = Math.floor(Math.random() * numberOfClusters),
@@ -215,16 +207,19 @@ class AgreeOrDisagree implements HaxeTemplate<AuthorData> {
 		reRender();
 	}
 
-	function setGroupColouring(questionNumber: Int) {}
+	function setDemographicQuestion(questionNumber: Int) {
+		this.demographicQuestionIndex = questionNumber;
+		var groupsInQuestion = getGroupsInQuestion(questionNumber);
+		this.color = D3.scale.category10().domain(D3.range(groupsInQuestion.length));
+	}
 
 	function reRender() {
 		updateNodes();
 		updateCircles();
 	}
 
-	function updateNodes() {
+	function getGroupsInQuestion(questionIndex) {
 		var allGroups = [],
-			getResponse:String->{group: String, radius: Int},
 			question = this.authorData.questions[questionIndex];
 
 		function addGroup(name: String) {
@@ -234,10 +229,35 @@ class AgreeOrDisagree implements HaxeTemplate<AuthorData> {
 		if (question != null) {
 			switch question.type {
 				case GroupedAnswer:
-					getResponse = function (response: String) return {group: response, radius: 1};
 					for (respondant in authorData.responses) {
 						var response = respondant[questionIndex];
 						addGroup(response);
+					}
+				case GroupedWeightedAnswer(groups):
+					for (group in groups) {
+						addGroup(group.group);
+					}
+				case FreeText:
+			}
+
+		} else {
+			addGroup('Everyone');
+		}
+
+		return allGroups;
+	}
+
+	function updateNodes() {
+		var allGroups = getGroupsInQuestion(questionIndex),
+			getResponse:String->{group: String, radius: Int},
+			question = this.authorData.questions[questionIndex];
+
+		if (question != null) {
+			switch question.type {
+				case GroupedAnswer:
+					getResponse = function (response: String) return {group: response, radius: 1};
+					for (respondant in authorData.responses) {
+						var response = respondant[questionIndex];
 					}
 				case GroupedWeightedAnswer(groups):
 					getResponse = function (response) {
@@ -248,16 +268,12 @@ class AgreeOrDisagree implements HaxeTemplate<AuthorData> {
 						}
 						return {group: 'Unanswered', radius: 0};
 					}
-					for (group in groups) {
-						addGroup(group.group);
-					}
 				case FreeText:
 					trace('not handling free text yet');
 					return;
 			}
 
 		} else {
-			addGroup('Everyone');
 			getResponse = function (_) {
 				return {group: 'Everyone', radius: 1};
 			}
@@ -268,13 +284,18 @@ class AgreeOrDisagree implements HaxeTemplate<AuthorData> {
 			var respondant = this.authorData.responses[node.responseIndex],
 				responseText = respondant[questionIndex],
 				response = getResponse(responseText),
-				groupIndex = allGroups.indexOf(response.group);
+				groupIndex = allGroups.indexOf(response.group),
+				demographQuestion = this.authorData.questions[demographicQuestionIndex],
+				demographText = respondant[demographicQuestionIndex],
+				groupsInDemographicQuestion = getGroupsInQuestion(demographicQuestionIndex),
+				demographIndex = groupsInDemographicQuestion.indexOf(demographText);
+
 			node.cx = xScale.call(groupIndex);
 			node.radius = this.allowRadiusScaling
 				? Math.sqrt(response.radius) * maxRadius
 				: maxRadius;
-			node.tooltip = responseText;
-			trace('tooltip is ', node.tooltip);
+			node.tooltip = '$responseText [$demographText]';
+			node.color = ''+color.call(demographIndex);
 			return node;
 		});
 	}

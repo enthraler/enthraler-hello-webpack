@@ -38,6 +38,7 @@ AgreeOrDisagree.prototype = {
 	,render: function(plainJsonData) {
 		var jsonStr = JSON.stringify(plainJsonData);
 		this.authorData = new tink_json_Parser0().parse(jsonStr);
+		this.setDemographicQuestion(0);
 		this.drawTheDots();
 		this.toggleRadiusScaling(true);
 		this.showQuestion(null);
@@ -50,11 +51,10 @@ AgreeOrDisagree.prototype = {
 	,drawTheDots: function() {
 		var _gthis = this;
 		this.setNumberOfGroups(1);
-		var color = js_d3_D3.scale.category10().domain(js_d3_D3.range(this.numberOfClusters));
 		this.nodes = js_d3_D3.range(this.get_numberOfNodes()).map(function(index) {
 			var i = Math.floor(Math.random() * _gthis.numberOfClusters);
 			var v = (i + 1) / _gthis.numberOfClusters * -Math.log(Math.random());
-			return { responseIndex : index, radius : _gthis.maxRadius, color : "" + color(i), tooltip : "", cx : _gthis.xScale(i), cy : _gthis.height / 2};
+			return { responseIndex : index, radius : _gthis.maxRadius, color : "" + _gthis.color(i), tooltip : "", cx : _gthis.xScale(i), cy : _gthis.height / 2};
 		});
 		this.force = js_d3_D3.layout.force().nodes(this.nodes).size([this.width,this.height]);
 		this.svg = js_d3_D3.select("body").append("svg").attr("width",this.width).attr("height",this.height);
@@ -77,7 +77,7 @@ AgreeOrDisagree.prototype = {
 				break;
 			default:
 				var other = _g;
-				haxe_Log.trace("Keycode " + other + " is not assigned to any action",{ fileName : "AgreeOrDisagree.hx", lineNumber : 196, className : "AgreeOrDisagree", methodName : "drawTheDots"});
+				console.log("Keycode " + other + " is not assigned to any action");
 			}
 		});
 		this.environment.requestHeightChange();
@@ -94,22 +94,58 @@ AgreeOrDisagree.prototype = {
 		this.labels.radius.innerText = "Radius scaling " + (allow ? "on" : "off") + " (\"r\")";
 		this.reRender();
 	}
-	,setGroupColouring: function(questionNumber) {
+	,setDemographicQuestion: function(questionNumber) {
+		this.demographicQuestionIndex = questionNumber;
+		var groupsInQuestion = this.getGroupsInQuestion(questionNumber);
+		this.color = js_d3_D3.scale.category10().domain(js_d3_D3.range(groupsInQuestion.length));
 	}
 	,reRender: function() {
 		this.updateNodes();
 		this.updateCircles();
 	}
-	,updateNodes: function() {
-		var _gthis = this;
+	,getGroupsInQuestion: function(questionIndex) {
 		var allGroups = [];
-		var getResponse;
-		var question = this.authorData.questions[this.questionIndex];
+		var question = this.authorData.questions[questionIndex];
 		var addGroup = function(name) {
 			if(allGroups.indexOf(name) == -1) {
 				allGroups.push(name);
 			}
 		};
+		if(question != null) {
+			var _g = question.type;
+			switch(_g[1]) {
+			case 0:
+				var _g1 = 0;
+				var _g11 = this.authorData.responses;
+				while(_g1 < _g11.length) {
+					var respondant = _g11[_g1];
+					++_g1;
+					var response = respondant[questionIndex];
+					addGroup(response);
+				}
+				break;
+			case 1:
+				var groups = _g[2];
+				var _g2 = 0;
+				while(_g2 < groups.length) {
+					var group = groups[_g2];
+					++_g2;
+					addGroup(group.group);
+				}
+				break;
+			case 2:
+				break;
+			}
+		} else {
+			addGroup("Everyone");
+		}
+		return allGroups;
+	}
+	,updateNodes: function() {
+		var _gthis = this;
+		var allGroups = this.getGroupsInQuestion(this.questionIndex);
+		var getResponse;
+		var question = this.authorData.questions[this.questionIndex];
 		if(question != null) {
 			var _g = question.type;
 			switch(_g[1]) {
@@ -123,7 +159,6 @@ AgreeOrDisagree.prototype = {
 					var respondant = _g11[_g1];
 					++_g1;
 					var response1 = respondant[this.questionIndex];
-					addGroup(response1);
 				}
 				break;
 			case 1:
@@ -139,19 +174,12 @@ AgreeOrDisagree.prototype = {
 					}
 					return { group : "Unanswered", radius : 0};
 				};
-				var _g3 = 0;
-				while(_g3 < groups.length) {
-					var group1 = groups[_g3];
-					++_g3;
-					addGroup(group1.group);
-				}
 				break;
 			case 2:
-				haxe_Log.trace("not handling free text yet",{ fileName : "AgreeOrDisagree.hx", lineNumber : 255, className : "AgreeOrDisagree", methodName : "updateNodes"});
+				console.log("not handling free text yet");
 				return;
 			}
 		} else {
-			addGroup("Everyone");
 			getResponse = function(_) {
 				return { group : "Everyone", radius : 1};
 			};
@@ -162,10 +190,14 @@ AgreeOrDisagree.prototype = {
 			var responseText = respondant1[_gthis.questionIndex];
 			var response3 = getResponse(responseText);
 			var groupIndex = allGroups.indexOf(response3.group);
+			var demographQuestion = _gthis.authorData.questions[_gthis.demographicQuestionIndex];
+			var demographText = respondant1[_gthis.demographicQuestionIndex];
+			var groupsInDemographicQuestion = _gthis.getGroupsInQuestion(_gthis.demographicQuestionIndex);
+			var demographIndex = groupsInDemographicQuestion.indexOf(demographText);
 			node.cx = _gthis.xScale(groupIndex);
 			node.radius = _gthis.allowRadiusScaling ? Math.sqrt(response3.radius) * _gthis.maxRadius : _gthis.maxRadius;
-			node.tooltip = responseText;
-			haxe_Log.trace("tooltip is ",{ fileName : "AgreeOrDisagree.hx", lineNumber : 277, className : "AgreeOrDisagree", methodName : "updateNodes", customParams : [node.tooltip]});
+			node.tooltip = "" + responseText + " [" + demographText + "]";
+			node.color = "" + _gthis.color(demographIndex);
 			return node;
 		});
 	}
@@ -317,11 +349,6 @@ haxe_StackItem.Method = function(classname,method) { var $x = ["Method",3,classn
 haxe_StackItem.LocalFunction = function(v) { var $x = ["LocalFunction",4,v]; $x.__enum__ = haxe_StackItem; $x.toString = $estr; return $x; };
 var haxe_IMap = function() { };
 haxe_IMap.__name__ = true;
-var haxe_Log = function() { };
-haxe_Log.__name__ = true;
-haxe_Log.trace = function(v,infos) {
-	js_Boot.__trace(v,infos);
-};
 var haxe_ds_ObjectMap = function() {
 	this.h = { __keys__ : { }};
 };
@@ -348,35 +375,6 @@ js__$Boot_HaxeError.prototype = $extend(Error.prototype,{
 });
 var js_Boot = function() { };
 js_Boot.__name__ = true;
-js_Boot.__unhtml = function(s) {
-	return s.split("&").join("&amp;").split("<").join("&lt;").split(">").join("&gt;");
-};
-js_Boot.__trace = function(v,i) {
-	var msg = i != null ? i.fileName + ":" + i.lineNumber + ": " : "";
-	msg += js_Boot.__string_rec(v,"");
-	if(i != null && i.customParams != null) {
-		var _g = 0;
-		var _g1 = i.customParams;
-		while(_g < _g1.length) {
-			var v1 = _g1[_g];
-			++_g;
-			msg += "," + js_Boot.__string_rec(v1,"");
-		}
-	}
-	var d;
-	var tmp;
-	if(typeof(document) != "undefined") {
-		d = document.getElementById("haxe:trace");
-		tmp = d != null;
-	} else {
-		tmp = false;
-	}
-	if(tmp) {
-		d.innerHTML += js_Boot.__unhtml(msg) + "<br/>";
-	} else if(typeof console != "undefined" && console.log != null) {
-		console.log(msg);
-	}
-};
 js_Boot.__string_rec = function(o,s) {
 	if(o == null) {
 		return "null";

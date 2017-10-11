@@ -2,8 +2,10 @@ import enthraler.HaxeTemplate;
 import enthraler.Environment;
 import js.d3.D3;
 import js.d3.scale.Scale;
+import js.d3.selection.Selection;
 import js.d3.layout.Layout;
 import js.Browser.*;
+import js.html.*;
 import tink.Json;
 
 typedef CsvData = Array<Array<String>>;
@@ -45,8 +47,9 @@ typedef CircleNode = {
 	responseIndex: Int,
 	radius: Float,
 	color: String,
-	x: Float,
-	y: Float,
+	tooltip: String,
+	?x: Float,
+	?y: Float,
 	cx: Float,
 	cy: Float,
 };
@@ -71,6 +74,7 @@ class AgreeOrDisagree implements HaxeTemplate<AuthorData> {
 	var width = 960;
 	var height = 500;
 	var padding = 6;
+	var minRadius = 4;
 	var maxRadius = 12;
 	var numberOfNodes(get, null): Int;
 	var numberOfClusters: Int;
@@ -82,15 +86,31 @@ class AgreeOrDisagree implements HaxeTemplate<AuthorData> {
 	// Enthraler stuff
 	var environment: Environment;
 	var authorData: AuthorData;
+	var labels: {
+		question: ParagraphElement,
+		demograph: ParagraphElement,
+		radius: ParagraphElement,
+	};
 
 	// D3 stuff
-	var circle: Dynamic;
+	var svg: Selection;
+	var circle: Selection;
 	var nodes: Array<CircleNode>;
 	var xScale: Ordinal;
 	var force: Force; // See https://github.com/d3/d3-3.x-api-reference/blob/master/Force-Layout.md
+	var allowRadiusScaling: Bool;
+	var questionIndex: Null<Int>;
 
 	public function new(environment:Environment) {
-		// this.header = new JQuery('<h1>').appendTo(environment.container);
+		this.labels = {
+			question: document.createParagraphElement(),
+			demograph: document.createParagraphElement(),
+			radius: document.createParagraphElement(),
+		}
+		environment.container.appendChild(labels.question);
+		environment.container.appendChild(labels.demograph);
+		environment.container.appendChild(labels.radius);
+
 		this.environment = environment;
 	}
 
@@ -108,6 +128,10 @@ class AgreeOrDisagree implements HaxeTemplate<AuthorData> {
       	}
 		// environment.container.innerHTML = 'Hello ${groups}, I am rendered using Haxe!';
 		this.drawTheDots();
+
+		this.toggleRadiusScaling(true);
+		this.showQuestion(null);
+
 		environment.requestHeightChange();
 	}
 
@@ -119,22 +143,19 @@ class AgreeOrDisagree implements HaxeTemplate<AuthorData> {
 			.rangePoints([0, width], 1);
 	}
 
-	function setRadiusScaling(showRadius: Bool) {}
-
-	function setGroupColouring(questionNumber: Int) {}
-
     function drawTheDots() {
 		setNumberOfGroups(1);
 
 		var color = D3.scale.category10().domain(D3.range(numberOfClusters));
 
-		this.nodes = D3.range(numberOfNodes).map(function(index) {
+		this.nodes = D3.range(numberOfNodes).map(function(index): CircleNode {
 			var i = Math.floor(Math.random() * numberOfClusters),
 				v = (i + 1) / numberOfClusters * -Math.log(Math.random());
 			return {
 				responseIndex: index,
-				radius: Math.sqrt(v) * maxRadius,
-				color: color.call(i),
+				radius: maxRadius,
+				color: ''+color.call(i),
+				tooltip: '',
 				cx: xScale.call(i),
 				cy: height / 2
 			};
@@ -145,16 +166,132 @@ class AgreeOrDisagree implements HaxeTemplate<AuthorData> {
 			.nodes(nodes)
 			.size([width, height]);
 
-		var svg = D3
+		this.svg = D3
 			.select("body")
 			.append("svg")
 			.attr("width", width)
 			.attr("height", height);
 
-		this.circle = svg
-			.selectAll("circle")
+		updateCircles();
+
+		force
+			.gravity(0)
+			.charge(0)
+			.on("tick", tick)
+			.start();
+
+		var q = 0;
+		window.addEventListener('keydown', function (e) {
+			switch e.keyCode {
+				case 37:
+					// Left
+					showQuestion(q--);
+				case 39:
+					// Right
+					showQuestion(q++);
+				case 82:
+					// "r" for radius
+					toggleRadiusScaling(!this.allowRadiusScaling);
+				case other:
+					trace('Keycode ${other} is not assigned to any action');
+			}
+		});
+
+		// Resize the iframe to fit the new height.
+		environment.requestHeightChange();
+	}
+
+	function showQuestion(questionIndex: Null<Int>) {
+		this.questionIndex = questionIndex;
+		var question = this.authorData.questions[questionIndex],
+			label = (questionIndex != null) ? 'Question: ${question.question}' : 'Survey';
+		this.labels.question.innerText = '$label (<-- or -->)';
+		reRender();
+	}
+
+	function toggleRadiusScaling(allow: Bool) {
+		this.allowRadiusScaling = allow;
+		this.labels.radius.innerText = 'Radius scaling ${allow ? "on" : "off"} ("r")';
+		reRender();
+	}
+
+	function setGroupColouring(questionNumber: Int) {}
+
+	function reRender() {
+		updateNodes();
+		updateCircles();
+	}
+
+	function updateNodes() {
+		var allGroups = [],
+			getResponse:String->{group: String, radius: Int},
+			question = this.authorData.questions[questionIndex];
+
+		function addGroup(name: String) {
+			if (allGroups.indexOf(name) == -1) allGroups.push(name);
+		}
+
+		if (question != null) {
+			switch question.type {
+				case GroupedAnswer:
+					getResponse = function (response: String) return {group: response, radius: 1};
+					for (respondant in authorData.responses) {
+						var response = respondant[questionIndex];
+						addGroup(response);
+					}
+				case GroupedWeightedAnswer(groups):
+					getResponse = function (response) {
+						for (group in groups) {
+							if (group.value == response) {
+								return group;
+							}
+						}
+						return {group: 'Unanswered', radius: 0};
+					}
+					for (group in groups) {
+						addGroup(group.group);
+					}
+				case FreeText:
+					trace('not handling free text yet');
+					return;
+			}
+
+		} else {
+			addGroup('Everyone');
+			getResponse = function (_) {
+				return {group: 'Everyone', radius: 1};
+			}
+		}
+		setNumberOfGroups(allGroups.length);
+
+		nodes = nodes.map(function(node) {
+			var respondant = this.authorData.responses[node.responseIndex],
+				responseText = respondant[questionIndex],
+				response = getResponse(responseText),
+				groupIndex = allGroups.indexOf(response.group);
+			node.cx = xScale.call(groupIndex);
+			node.radius = this.allowRadiusScaling
+				? Math.sqrt(response.radius) * maxRadius
+				: maxRadius;
+			node.tooltip = responseText;
+			trace('tooltip is ', node.tooltip);
+			return node;
+		});
+	}
+
+	function updateCircles() {
+		// Update current, circles
+		this.circle = svg.selectAll("circle")
 			.data(nodes)
-			.enter()
+			.attr("r", function(d) {
+				return d.radius;
+			})
+			.style("fill", function(d) {
+				return d.color;
+			});
+
+		// Add missing circles
+		circle.enter()
 			.append("circle")
 			.attr("r", function(d) {
 				return d.radius;
@@ -164,81 +301,20 @@ class AgreeOrDisagree implements HaxeTemplate<AuthorData> {
 			})
 			// Note, we are casting to dynamic to avoid Haxe binding `force.drag` to `force`.
 			// In this case we actually want JS's super weird behaviour of making "this" bind to whatever the hell it's attached to when it's called.
-			.call((force:Dynamic).drag);
+			.call((force:Dynamic).drag)
+			.append("title");
 
-		force
-			.gravity(0)
-			.charge(0)
-			.on("tick", tick)
-			.start();
+		// Add a tooltip
+		this.circle
+			.select("title")
+			.text(function (d: CircleNode) {
+				return d.tooltip;
+			});
 
-		var q = 0;
-		window.addEventListener('keydown', function () {
-			showQuestion(q++);
-		});
+		// Delete circles that no longer need to be here
+		circle.exit().remove();
 
-		// Resize the iframe to fit the new height.
-		environment.requestHeightChange();
-	}
-
-	function showQuestion(questionIndex: Int) {
-		var question = this.authorData.questions[questionIndex];
-		trace('Q: ${question.question}');
-
-		var allGroups = [],
-			getResponse:String->{group: String, radius: Int};
-
-		function addGroup(name: String) {
-			if (allGroups.indexOf(name) == -1) allGroups.push(name);
-		}
-
-		switch question.type {
-			case GroupedAnswer:
-				getResponse = function (response: String) return {group: response, radius: 1};
-				for (respondant in authorData.responses) {
-					var response = respondant[questionIndex];
-					addGroup(response);
-				}
-			case GroupedWeightedAnswer(groups):
-				getResponse = function (response) {
-					for (group in groups) {
-						if (group.value == response) {
-							return group;
-						}
-					}
-					return {group: 'Unanswered', radius: 0};
-				}
-				for (group in groups) {
-					addGroup(group.group);
-				}
-			case FreeText:
-				trace('not handling free text yet');
-				return;
-		}
-
-		setNumberOfGroups(allGroups.length);
-		nodes = nodes.map(function(node) {
-			var respondant = this.authorData.responses[node.responseIndex],
-				responseText = respondant[questionIndex],
-				response = getResponse(responseText),
-				groupIndex = allGroups.indexOf(response.group);
-			node.cx = xScale.call(groupIndex);
-			node.radius = Math.sqrt(response.radius) * maxRadius;
-			return node;
-		});
-		this.force.resume();
-	}
-
-	function updateNodes() {
-		setNumberOfGroups(Math.ceil(Math.random() * 5));
-		trace("update nodes");
-		nodes = nodes.map(function(node) {
-			var i = Math.floor(Math.random() * numberOfClusters),
-				v = (i + 1) / numberOfClusters * -Math.log(Math.random());
-			node.radius = Math.sqrt(v) * maxRadius;
-			node.cx = xScale.call(i);
-			return node;
-		});
+		// Re-trigger the momentum on the gravity.
 		this.force.resume();
 	}
 

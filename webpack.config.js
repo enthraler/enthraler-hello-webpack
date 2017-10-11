@@ -1,20 +1,30 @@
 var path = require('path');
 
+// Options
+const buildMode = process.env.NODE_ENV || 'development';
+const debugMode = buildMode !== 'production';
+const sourcemapsMode = debugMode ? 'eval-source-map' : undefined;
+const dist = `${__dirname}/www/`;
+
 module.exports = {
-    entry: './src/hello.js',
+    entry: {
+        agreeOrDisagree: './build.hxml'
+    },
     output: {
-        path: './bin',
-        filename: 'hello.bundle.js',
+        path: dist,
+        filename: '[name].bundle.js',
         libraryTarget: 'amd',
     },
     module: {
         rules: [
+            // Haxe loader (through HXML files for now)
             {
-                test: /\.js$/,
-                loader: 'babel-loader',
-                exclude: [path.resolve(__dirname, "node_modules")],
+                test: /\.hxml$/,
+                loader: 'haxe-loader',
                 options: {
-                    presets: ['es2015']
+                    // Additional compiler options added to all builds
+                    extra: `-D build_mode=${buildMode}`,
+                    debug: debugMode
                 }
             },
             {
@@ -27,5 +37,12 @@ module.exports = {
             }
         ]
     },
-    externals: ['jquery'],
+    devtool: sourcemapsMode,
+    externals: ['jquery', 'cdnjs'],
+    devServer: {
+            contentBase: dist,
+            compress: true,
+            port: 9000,
+            overlay: true
+    },
 };

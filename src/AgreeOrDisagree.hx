@@ -68,7 +68,7 @@ extern class D3Tip {
 	Note: the macro will overwrite the `@:native` metadata on any externs to a custom global variable, and set that variable during the define function.
 **/
 @:enthralerDependency('cdnjs/d3/3.5.17/d3.min', D3)
-@:enthralerDependency('cdnjs/d3-tip/0.7.1/d3-tip.min', D3Tip)
+//@:enthralerDependency('cdnjs/d3-tip/0.7.1/d3-tip.min', D3Tip)
 class AgreeOrDisagree implements HaxeTemplate<AuthorData> {
 	// Visualisation config
 	var width = 960;

@@ -114,6 +114,7 @@ class AgreeOrDisagree implements HaxeTemplate<AuthorData> {
 		environment.container.appendChild(labels.radius);
 
 		this.environment = environment;
+		this.color = D3.scale.category10().domain(D3.range(1));
 	}
 
 	public function render(plainJsonData: {}) {
@@ -121,8 +122,8 @@ class AgreeOrDisagree implements HaxeTemplate<AuthorData> {
 		// We need to re-parse it if we want it to support our enums correctly.
 		var jsonStr = haxe.Json.stringify(plainJsonData);
 		this.authorData = tink.Json.parse(jsonStr);
-		this.setDemographicQuestion(0);
 		this.drawTheDots();
+		this.setDemographicQuestion(null);
 		this.toggleRadiusScaling(true);
 		this.showQuestion(null);
 
@@ -172,7 +173,8 @@ class AgreeOrDisagree implements HaxeTemplate<AuthorData> {
 			.on("tick", tick)
 			.start();
 
-		var q = 0;
+		var q = 0,
+			demographicQuestions = [null, 0, 42, 43, 44, 45, 46, 47];
 		window.addEventListener('keydown', function (e) {
 			switch e.keyCode {
 				case 37:
@@ -181,6 +183,18 @@ class AgreeOrDisagree implements HaxeTemplate<AuthorData> {
 				case 39:
 					// Right
 					showQuestion(q++);
+				case 38:
+					// Up
+					var currentIndex = demographicQuestions.indexOf(this.demographicQuestionIndex),
+						prevIndex = (currentIndex<1) ? (demographicQuestions.length-1) : currentIndex-1;
+					this.setDemographicQuestion(demographicQuestions[prevIndex]);
+					e.preventDefault();
+				case 40:
+					// Down
+					var currentIndex = demographicQuestions.indexOf(this.demographicQuestionIndex),
+						nextIndex = (currentIndex==(demographicQuestions.length-1)) ? 0 : currentIndex+1;
+					this.setDemographicQuestion(demographicQuestions[nextIndex]);
+					e.preventDefault();
 				case 82:
 					// "r" for radius
 					toggleRadiusScaling(!this.allowRadiusScaling);
@@ -207,10 +221,21 @@ class AgreeOrDisagree implements HaxeTemplate<AuthorData> {
 		reRender();
 	}
 
-	function setDemographicQuestion(questionNumber: Int) {
+	function setDemographicQuestion(questionNumber: Null<Int>) {
 		this.demographicQuestionIndex = questionNumber;
-		var groupsInQuestion = getGroupsInQuestion(questionNumber);
-		this.color = D3.scale.category10().domain(D3.range(groupsInQuestion.length));
+		var numGroups,
+			label;
+		if (questionNumber != null) {
+			var groupsInQuestion = getGroupsInQuestion(questionNumber);
+			numGroups = groupsInQuestion.length;
+			label = this.authorData.questions[questionNumber].question;
+		} else {
+			numGroups = 1;
+			label = 'No demograph selected';
+		}
+		this.labels.demograph.innerText = 'Coloring: ' + label;
+		this.color = D3.scale.category10().domain(D3.range(0, numGroups - 1));
+		reRender();
 	}
 
 	function reRender() {
@@ -285,15 +310,15 @@ class AgreeOrDisagree implements HaxeTemplate<AuthorData> {
 				responseText = respondant[questionIndex],
 				response = getResponse(responseText),
 				groupIndex = allGroups.indexOf(response.group),
-				demographQuestion = this.authorData.questions[demographicQuestionIndex],
 				demographText = respondant[demographicQuestionIndex],
 				groupsInDemographicQuestion = getGroupsInQuestion(demographicQuestionIndex),
 				demographIndex = groupsInDemographicQuestion.indexOf(demographText);
 
 			node.cx = xScale.call(groupIndex);
+			// TODO: figure out a way to do radius as a ratio of the maximum value.
 			node.radius = this.allowRadiusScaling
-				? Math.sqrt(response.radius) * maxRadius
-				: maxRadius;
+				? (response.radius / 3) * maxRadius
+				: maxRadius/3;
 			node.tooltip = '$responseText [$demographText]';
 			node.color = ''+color.call(demographIndex);
 			return node;

@@ -28,6 +28,7 @@ var AgreeOrDisagree = function(environment) {
 	environment.container.appendChild(this.labels.demograph);
 	environment.container.appendChild(this.labels.radius);
 	this.environment = environment;
+	this.color = js_d3_D3.scale.category10().domain(js_d3_D3.range(1));
 };
 AgreeOrDisagree.__name__ = true;
 AgreeOrDisagree.__interfaces__ = [enthraler_HaxeTemplate];
@@ -38,8 +39,8 @@ AgreeOrDisagree.prototype = {
 	,render: function(plainJsonData) {
 		var jsonStr = JSON.stringify(plainJsonData);
 		this.authorData = new tink_json_Parser0().parse(jsonStr);
-		this.setDemographicQuestion(0);
 		this.drawTheDots();
+		this.setDemographicQuestion(null);
 		this.toggleRadiusScaling(true);
 		this.showQuestion(null);
 		this.environment.requestHeightChange();
@@ -61,6 +62,7 @@ AgreeOrDisagree.prototype = {
 		this.updateCircles();
 		this.force.gravity(0).charge(0).on("tick",$bind(this,this.tick)).start();
 		var q = 0;
+		var demographicQuestions = [null,0,42,43,44,45,46,47];
 		window.addEventListener("keydown",function(e) {
 			var _g = e.keyCode;
 			switch(_g) {
@@ -68,9 +70,21 @@ AgreeOrDisagree.prototype = {
 				q -= 1;
 				_gthis.showQuestion(q + 1);
 				break;
+			case 38:
+				var currentIndex = demographicQuestions.indexOf(_gthis.demographicQuestionIndex);
+				var prevIndex = currentIndex < 1 ? demographicQuestions.length - 1 : currentIndex - 1;
+				_gthis.setDemographicQuestion(demographicQuestions[prevIndex]);
+				e.preventDefault();
+				break;
 			case 39:
 				q += 1;
 				_gthis.showQuestion(q - 1);
+				break;
+			case 40:
+				var currentIndex1 = demographicQuestions.indexOf(_gthis.demographicQuestionIndex);
+				var nextIndex = currentIndex1 == demographicQuestions.length - 1 ? 0 : currentIndex1 + 1;
+				_gthis.setDemographicQuestion(demographicQuestions[nextIndex]);
+				e.preventDefault();
 				break;
 			case 82:
 				_gthis.toggleRadiusScaling(!_gthis.allowRadiusScaling);
@@ -96,8 +110,19 @@ AgreeOrDisagree.prototype = {
 	}
 	,setDemographicQuestion: function(questionNumber) {
 		this.demographicQuestionIndex = questionNumber;
-		var groupsInQuestion = this.getGroupsInQuestion(questionNumber);
-		this.color = js_d3_D3.scale.category10().domain(js_d3_D3.range(groupsInQuestion.length));
+		var numGroups;
+		var label;
+		if(questionNumber != null) {
+			var groupsInQuestion = this.getGroupsInQuestion(questionNumber);
+			numGroups = groupsInQuestion.length;
+			label = this.authorData.questions[questionNumber].question;
+		} else {
+			numGroups = 1;
+			label = "No demograph selected";
+		}
+		this.labels.demograph.innerText = "Coloring: " + label;
+		this.color = js_d3_D3.scale.category10().domain(js_d3_D3.range(0,numGroups - 1));
+		this.reRender();
 	}
 	,reRender: function() {
 		this.updateNodes();
@@ -190,12 +215,11 @@ AgreeOrDisagree.prototype = {
 			var responseText = respondant1[_gthis.questionIndex];
 			var response3 = getResponse(responseText);
 			var groupIndex = allGroups.indexOf(response3.group);
-			var demographQuestion = _gthis.authorData.questions[_gthis.demographicQuestionIndex];
 			var demographText = respondant1[_gthis.demographicQuestionIndex];
 			var groupsInDemographicQuestion = _gthis.getGroupsInQuestion(_gthis.demographicQuestionIndex);
 			var demographIndex = groupsInDemographicQuestion.indexOf(demographText);
 			node.cx = _gthis.xScale(groupIndex);
-			node.radius = _gthis.allowRadiusScaling ? Math.sqrt(response3.radius) * _gthis.maxRadius : _gthis.maxRadius;
+			node.radius = _gthis.allowRadiusScaling ? response3.radius / 3 * _gthis.maxRadius : _gthis.maxRadius / 3;
 			node.tooltip = "" + responseText + " [" + demographText + "]";
 			node.color = "" + _gthis.color(demographIndex);
 			return node;

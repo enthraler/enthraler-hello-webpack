@@ -21,8 +21,8 @@ var AgreeOrDisagree = function(environment) {
 	this.maxRadius = 12;
 	this.minRadius = 4;
 	this.padding = 6;
-	this.height = 500;
-	this.width = 960;
+	this.height = 480;
+	this.width = 650;
 	this.labels = { question : window.document.createElement("p"), demograph : window.document.createElement("p"), radius : window.document.createElement("p")};
 	environment.container.appendChild(this.labels.question);
 	environment.container.appendChild(this.labels.demograph);

@@ -71,8 +71,8 @@ extern class D3Tip {
 //@:enthralerDependency('cdnjs/d3-tip/0.7.1/d3-tip.min', D3Tip)
 class AgreeOrDisagree implements HaxeTemplate<AuthorData> {
 	// Visualisation config
-	var width = 960;
-	var height = 500;
+	var width = 650;
+	var height = 480;
 	var padding = 6;
 	var minRadius = 4;
 	var maxRadius = 12;

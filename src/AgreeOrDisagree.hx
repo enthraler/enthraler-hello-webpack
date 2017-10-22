@@ -87,6 +87,7 @@ class AgreeOrDisagree implements HaxeTemplate<AuthorData> {
 	// Enthraler stuff
 	var environment: Environment;
 	var authorData: AuthorData;
+	var uiContainer: DivElement;
 	var labels: {
 		question: ParagraphElement,
 		demograph: ParagraphElement,
@@ -105,14 +106,17 @@ class AgreeOrDisagree implements HaxeTemplate<AuthorData> {
 	var force: Force; // See https://github.com/d3/d3-3.x-api-reference/blob/master/Force-Layout.md
 
 	public function new(environment:Environment) {
+		this.uiContainer = document.createDivElement();
 		this.labels = {
 			question: document.createParagraphElement(),
 			demograph: document.createParagraphElement(),
 			radius: document.createParagraphElement(),
 		}
-		environment.container.appendChild(labels.question);
-		environment.container.appendChild(labels.demograph);
-		environment.container.appendChild(labels.radius);
+		uiContainer.appendChild(labels.question);
+		uiContainer.appendChild(labels.demograph);
+		uiContainer.appendChild(labels.radius);
+		uiContainer.className = 'ui-container';
+		environment.container.appendChild(uiContainer);
 
 		this.environment = environment;
 		this.color = D3.scale.category10().domain(D3.range(1));

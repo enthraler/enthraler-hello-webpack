@@ -23,10 +23,13 @@ var AgreeOrDisagree = function(environment) {
 	this.padding = 6;
 	this.height = 480;
 	this.width = 650;
+	this.uiContainer = window.document.createElement("div");
 	this.labels = { question : window.document.createElement("p"), demograph : window.document.createElement("p"), radius : window.document.createElement("p")};
-	environment.container.appendChild(this.labels.question);
-	environment.container.appendChild(this.labels.demograph);
-	environment.container.appendChild(this.labels.radius);
+	this.uiContainer.appendChild(this.labels.question);
+	this.uiContainer.appendChild(this.labels.demograph);
+	this.uiContainer.appendChild(this.labels.radius);
+	this.uiContainer.className = "ui-container";
+	environment.container.appendChild(this.uiContainer);
 	this.environment = environment;
 	this.color = js_d3_D3.scale.category10().domain(js_d3_D3.range(1));
 };

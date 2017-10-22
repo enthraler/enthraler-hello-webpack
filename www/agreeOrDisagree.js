@@ -1622,7 +1622,7 @@ tink_json_Value.VArray = function(a) { var $x = ["VArray",4,a]; $x.__enum__ = ti
 tink_json_Value.VObject = function(a) { var $x = ["VObject",5,a]; $x.__enum__ = tink_json_Value; $x.toString = $estr; return $x; };
 var $_, $fid = 0;
 function $bind(o,m) { if( m == null ) return null; if( m.__id__ == null ) m.__id__ = $fid++; var f; if( o.hx__closures__ == null ) o.hx__closures__ = {}; else f = o.hx__closures__[m.__id__]; if( f == null ) { f = function(){ return f.method.apply(f.scope, arguments); }; f.scope = o; f.method = m; o.hx__closures__[m.__id__] = f; } return f; }
-$global.define(["cdnjs/d3/3.5.17/d3.min"],function(js_d3_D3) {
+$global.define(["cdnjs/d3/3.5.17/d3.min","css!agreeOrDisagree.css"],function(js_d3_D3,_) {
 	$global.js_d3_D3 = js_d3_D3;
 	return AgreeOrDisagree;
 });

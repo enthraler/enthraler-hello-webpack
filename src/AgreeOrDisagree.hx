@@ -69,6 +69,7 @@ extern class D3Tip {
 **/
 @:enthralerDependency('cdnjs/d3/3.5.17/d3.min', D3)
 //@:enthralerDependency('cdnjs/d3-tip/0.7.1/d3-tip.min', D3Tip)
+@:enthralerDependency('css!agreeOrDisagree.css')
 class AgreeOrDisagree implements HaxeTemplate<AuthorData> {
 	// Visualisation config
 	var width = 650;

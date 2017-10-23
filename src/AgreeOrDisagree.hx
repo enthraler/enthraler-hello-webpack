@@ -190,7 +190,7 @@ class AgreeOrDisagree implements HaxeTemplate<AuthorData> {
 			.append("svg")
 			.attr("width", width)
 			.attr("height", height)
-			.attr("viewBox", [].join(','));
+			.attr("viewBox", [0, 0, width, height].join(','));
 
 		updateCircles();
 

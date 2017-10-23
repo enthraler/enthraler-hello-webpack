@@ -23,8 +23,8 @@ var AgreeOrDisagree = function(environment) {
 	this.padding = 6;
 	this.height = 300;
 	this.width = 650;
-	environment.container.innerHTML = "<div id=\"ui-container\">\n\t\t\t<h1 id=\"title\"></h1>\n\t\t\t<div id=\"settings\">\n\t\t\t\t<select><option id=\"demograph-label\"></option></select>\n\t\t\t\t<p id=\"radius-label\"></p>\n\t\t\t</div>\n\t\t\t<div id=\"d3-container\"></div>\n\t\t\t<div id=\"question-nav\">\n\t\t\t\t<a href=\"#\" id=\"previous-btn\"><i class=\"fa fa-chevron-left\"></i><span class=\"sr-only\">Previous Question</span></a>\n\t\t\t\t<h2 id=\"question-label\"></h2>\n\t\t\t\t<a href=\"#\" id=\"next-btn\"><i class=\"fa fa-chevron-right\"></i><span class=\"sr-only\">Next Question</span></a>\n\t\t\t</div>\n\t\t</div>";
-	this.labels = { title : window.document.getElementById("title"), question : window.document.getElementById("question-label"), demograph : window.document.getElementById("demograph-label"), radius : window.document.getElementById("radius-label")};
+	environment.container.innerHTML = "<div id=\"ui-container\">\n\t\t\t<h1 id=\"title\"></h1>\n\t\t\t<div id=\"settings\">\n\t\t\t\t<select><option id=\"demograph-label\"></option></select>\n\t\t\t\t<div>\n\t\t\t\t\t<label for=\"radius-toggle\" title=\"If a respondant rated a question as important, we will make their circle bigger\">\n\t\t\t\t\t\tShow loud voices\n\t\t\t\t\t\t<input type=\"checkbox\" id=\"radius-toggle\" checked />\n\t\t\t\t\t</label>\n\t\t\t\t</div>\n\t\t\t</div>\n\t\t\t<div id=\"d3-container\"></div>\n\t\t\t<div id=\"question-nav\">\n\t\t\t\t<a href=\"#\" id=\"previous-btn\"><i class=\"fa fa-chevron-left\"></i><span class=\"sr-only\">Previous Question</span></a>\n\t\t\t\t<h2 id=\"question-label\"></h2>\n\t\t\t\t<a href=\"#\" id=\"next-btn\"><i class=\"fa fa-chevron-right\"></i><span class=\"sr-only\">Next Question</span></a>\n\t\t\t</div>\n\t\t</div>";
+	this.labels = { title : window.document.getElementById("title"), question : window.document.getElementById("question-label"), demograph : window.document.getElementById("demograph-label"), radius : window.document.getElementById("radius-toggle")};
 	this.environment = environment;
 	this.color = js_d3_D3.scale.category10().domain(js_d3_D3.range(1));
 };
@@ -57,7 +57,7 @@ AgreeOrDisagree.prototype = {
 			return { responseIndex : index, radius : _gthis.maxRadius, color : "" + _gthis.color(i), tooltip : "", cx : _gthis.xScale(i), cy : _gthis.height / 2};
 		});
 		this.force = js_d3_D3.layout.force().nodes(this.nodes).size([this.width,this.height]);
-		this.svg = js_d3_D3.select("#d3-container").append("svg").attr("width",this.width).attr("height",this.height).attr("viewBox",[].join(","));
+		this.svg = js_d3_D3.select("#d3-container").append("svg").attr("width",this.width).attr("height",this.height).attr("viewBox",[0,0,this.width,this.height].join(","));
 		this.updateCircles();
 		this.force.gravity(0).charge(0).on("tick",$bind(this,this.tick)).start();
 		var q = -1;
@@ -108,6 +108,9 @@ AgreeOrDisagree.prototype = {
 		var hammer = new Hammer(this.environment.container,null);
 		hammer.on("swiperight",prevQuestion);
 		hammer.on("swipeleft",nextQuestion);
+		this.labels.radius.addEventListener("change",function(e1) {
+			_gthis.toggleRadiusScaling(_gthis.labels.radius.checked);
+		});
 		this.environment.requestHeightChange();
 	}
 	,showQuestion: function(questionIndex) {
@@ -119,7 +122,6 @@ AgreeOrDisagree.prototype = {
 	}
 	,toggleRadiusScaling: function(allow) {
 		this.allowRadiusScaling = allow;
-		this.labels.radius.innerText = "Radius scaling " + (allow ? "on" : "off") + " (\"r\")";
 		this.reRender();
 	}
 	,setDemographicQuestion: function(questionNumber) {

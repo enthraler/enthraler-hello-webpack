@@ -19,6 +19,9 @@ body {
 
 #d3-container {
 	flex: 4 300px;
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
 }
 
 #d3-container svg {

@@ -25,11 +25,6 @@ enum QuestionType {
 
 typedef AuthorData = {
     /**
-    Column numbers that contain profile info.
-    First row should be a header with the column titles.
-    **/
-    var profileInfo: Array<Int>;
-    /**
     The list of questions we are asking.
     See tink_json for how these are displayed in JSON form: https://github.com/haxetink/tink_json#enums
     **/

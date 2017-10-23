@@ -319,9 +319,6 @@ class AgreeOrDisagree implements HaxeTemplate<AuthorData> {
 			switch question.type {
 				case GroupedAnswer:
 					getResponse = function (response: String) return {group: response, radius: 1};
-					for (respondant in authorData.responses) {
-						var response = respondant[questionIndex];
-					}
 				case GroupedWeightedAnswer(groups):
 					getResponse = function (response) {
 						for (group in groups) {
@@ -345,8 +342,13 @@ class AgreeOrDisagree implements HaxeTemplate<AuthorData> {
 
 		nodes = nodes.map(function(node) {
 			var respondant = this.authorData.responses[node.responseIndex],
-				responseText = respondant[questionIndex],
-				response = getResponse(responseText),
+				responseText = respondant[questionIndex];
+			if (responseText == "") {
+				node.radius = 0;
+				node.cx = -1;
+				return node;
+			}
+			var response = getResponse(responseText),
 				groupIndex = allGroups.indexOf(response.group),
 				demographText = respondant[demographicQuestionIndex],
 				groupsInDemographicQuestion = getGroupsInQuestion(demographicQuestionIndex),

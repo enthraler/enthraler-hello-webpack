@@ -192,22 +192,15 @@ AgreeOrDisagree.prototype = {
 				getResponse = function(response) {
 					return { group : response, radius : 1};
 				};
-				var _g1 = 0;
-				var _g11 = this.authorData.responses;
-				while(_g1 < _g11.length) {
-					var respondant = _g11[_g1];
-					++_g1;
-					var response1 = respondant[this.questionIndex];
-				}
 				break;
 			case 1:
 				var groups = _g[2];
-				getResponse = function(response2) {
-					var _g2 = 0;
-					while(_g2 < groups.length) {
-						var group = groups[_g2];
-						++_g2;
-						if(group.value == response2) {
+				getResponse = function(response1) {
+					var _g1 = 0;
+					while(_g1 < groups.length) {
+						var group = groups[_g1];
+						++_g1;
+						if(group.value == response1) {
 							return group;
 						}
 					}
@@ -225,15 +218,20 @@ AgreeOrDisagree.prototype = {
 		}
 		this.setNumberOfGroups(allGroups.length);
 		this.nodes = this.nodes.map(function(node) {
-			var respondant1 = _gthis.authorData.responses[node.responseIndex];
-			var responseText = respondant1[_gthis.questionIndex];
-			var response3 = getResponse(responseText);
-			var groupIndex = allGroups.indexOf(response3.group);
-			var demographText = respondant1[_gthis.demographicQuestionIndex];
+			var respondant = _gthis.authorData.responses[node.responseIndex];
+			var responseText = respondant[_gthis.questionIndex];
+			if(responseText == "") {
+				node.radius = 0;
+				node.cx = -1;
+				return node;
+			}
+			var response2 = getResponse(responseText);
+			var groupIndex = allGroups.indexOf(response2.group);
+			var demographText = respondant[_gthis.demographicQuestionIndex];
 			var groupsInDemographicQuestion = _gthis.getGroupsInQuestion(_gthis.demographicQuestionIndex);
 			var demographIndex = groupsInDemographicQuestion.indexOf(demographText);
 			node.cx = _gthis.xScale(groupIndex);
-			node.radius = _gthis.allowRadiusScaling ? response3.radius / 3 * _gthis.maxRadius : _gthis.maxRadius / 3;
+			node.radius = _gthis.allowRadiusScaling ? response2.radius / 3 * _gthis.maxRadius : _gthis.maxRadius / 3;
 			node.tooltip = responseText;
 			if(demographText != null) {
 				node.tooltip += " [" + demographText + "]";

@@ -227,11 +227,27 @@ class AgreeOrDisagree implements HaxeTemplate<AuthorData> {
 			.on("tick", tick)
 			.start();
 
-		var q = -1,
-			demographicQuestions = [null, 0, 42, 43, 44, 45, 46, 47];
+		var q = -1;
 
-		function prevQuestion() if (q > 0) showQuestion(--q);
-		function nextQuestion() if (q < (authorData.questions.length - 1)) showQuestion(++q);
+		function prevQuestion() {
+			if (q > 0) q--;
+			if (authorData.questions[q].type.match(FreeText)) {
+				// Skip comments for now.
+				prevQuestion();
+				return;
+			}
+			showQuestion(q);
+		}
+		function nextQuestion() {
+			if (q < (authorData.questions.length - 1)) q++;
+
+			if (authorData.questions[q].type.match(FreeText)) {
+				// Skip comments for now.
+				nextQuestion();
+				return;
+			}
+			showQuestion(q);
+		}
 
 		window.addEventListener('keydown', function (e) {
 			switch e.keyCode {

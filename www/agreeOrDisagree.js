@@ -18,13 +18,14 @@ QuestionType.FreeText.__enum__ = QuestionType;
 var enthraler_HaxeTemplate = function() { };
 enthraler_HaxeTemplate.__name__ = true;
 var AgreeOrDisagree = function(environment) {
+	this.demographicQuestions = [null,0,42,43,44,45,46,47];
 	this.maxRadius = 12;
 	this.minRadius = 4;
 	this.padding = 6;
 	this.height = 300;
 	this.width = 650;
-	environment.container.innerHTML = "<div id=\"ui-container\">\n\t\t\t<h1 id=\"title\"></h1>\n\t\t\t<div id=\"settings\">\n\t\t\t\t<select><option id=\"demograph-label\"></option></select>\n\t\t\t\t<div>\n\t\t\t\t\t<label for=\"radius-toggle\" title=\"If a respondant rated a question as important, we will make their circle bigger\">\n\t\t\t\t\t\tShow loud voices\n\t\t\t\t\t\t<input type=\"checkbox\" id=\"radius-toggle\" checked />\n\t\t\t\t\t</label>\n\t\t\t\t</div>\n\t\t\t</div>\n\t\t\t<div id=\"d3-container\"></div>\n\t\t\t<div id=\"question-nav\">\n\t\t\t\t<a href=\"#\" id=\"previous-btn\"><i class=\"fa fa-chevron-left\"></i><span class=\"sr-only\">Previous Question</span></a>\n\t\t\t\t<h2 id=\"question-label\"></h2>\n\t\t\t\t<a href=\"#\" id=\"next-btn\"><i class=\"fa fa-chevron-right\"></i><span class=\"sr-only\">Next Question</span></a>\n\t\t\t</div>\n\t\t</div>";
-	this.labels = { title : window.document.getElementById("title"), question : window.document.getElementById("question-label"), demograph : window.document.getElementById("demograph-label"), radius : window.document.getElementById("radius-toggle")};
+	environment.container.innerHTML = "<div id=\"ui-container\">\n\t\t\t<h1 id=\"title\"></h1>\n\t\t\t<div id=\"settings\">\n\t\t\t\t<div>\n\t\t\t\t\t<select id=\"demograph-select\">\n\t\t\t\t\t</select>\n\t\t\t\t</div>\n\t\t\t\t<div>\n\t\t\t\t\t<label for=\"radius-toggle\" title=\"If a respondant rated a question as important, we will make their circle bigger\">\n\t\t\t\t\t\tShow loud voices\n\t\t\t\t\t\t<input type=\"checkbox\" id=\"radius-toggle\" checked />\n\t\t\t\t\t</label>\n\t\t\t\t</div>\n\t\t\t</div>\n\t\t\t<div id=\"d3-container\"></div>\n\t\t\t<div id=\"question-nav\">\n\t\t\t\t<a href=\"#\" id=\"previous-btn\"><i class=\"fa fa-chevron-left\"></i><span class=\"sr-only\">Previous Question</span></a>\n\t\t\t\t<h2 id=\"question-label\"></h2>\n\t\t\t\t<a href=\"#\" id=\"next-btn\"><i class=\"fa fa-chevron-right\"></i><span class=\"sr-only\">Next Question</span></a>\n\t\t\t</div>\n\t\t</div>";
+	this.labels = { title : window.document.getElementById("title"), question : window.document.getElementById("question-label"), demograph : window.document.getElementById("demograph-select"), radius : window.document.getElementById("radius-toggle")};
 	this.environment = environment;
 	this.color = js_d3_D3.scale.category10().domain(js_d3_D3.range(1));
 };
@@ -38,11 +39,35 @@ AgreeOrDisagree.prototype = {
 		var jsonStr = JSON.stringify(plainJsonData);
 		this.authorData = new tink_json_Parser0().parse(jsonStr);
 		this.labels.title.innerText = "Steam Community Survey";
+		this.setupDemographSelectBox();
 		this.drawTheDots();
 		this.setDemographicQuestion(null);
 		this.toggleRadiusScaling(true);
 		this.showQuestion(null);
 		this.environment.requestHeightChange();
+	}
+	,setupDemographSelectBox: function() {
+		var _gthis = this;
+		var _g = new haxe_ds_IntMap();
+		_g.h[0] = "Community";
+		_g.h[42] = "# of games";
+		_g.h[43] = "Revenue";
+		_g.h[44] = "# of employees";
+		_g.h[45] = "First release";
+		_g.h[46] = "Can contact Valve";
+		_g.h[47] = "Would meet with Valve";
+		var demographLabels = _g;
+		var selectOptions = this.demographicQuestions.map(function(i) {
+			if(i == null) {
+				return "<option value=\"\">Do not highlight demographics</option>";
+			}
+			return "<option value=\"" + i + "\">" + demographLabels.h[i] + "</option>";
+		});
+		this.labels.demograph.innerHTML = selectOptions.join("");
+		this.labels.demograph.addEventListener("change",function() {
+			var value = _gthis.labels.demograph.value;
+			_gthis.setDemographicQuestion(value == "" ? null : Std.parseInt(value));
+		});
 	}
 	,setNumberOfGroups: function(num) {
 		this.numberOfClusters = num;
@@ -61,53 +86,66 @@ AgreeOrDisagree.prototype = {
 		this.updateCircles();
 		this.force.gravity(0).charge(0).on("tick",$bind(this,this.tick)).start();
 		var q = -1;
-		var demographicQuestions = [null,0,42,43,44,45,46,47];
-		var prevQuestion = function() {
+		var prevQuestion = null;
+		prevQuestion = function() {
 			if(q > 0) {
-				var prevQuestion1 = q -= 1;
-				_gthis.showQuestion(prevQuestion1);
+				q -= 1;
 			}
-		};
-		var nextQuestion = function() {
-			if(q < _gthis.authorData.questions.length - 1) {
-				var nextQuestion1 = q += 1;
-				_gthis.showQuestion(nextQuestion1);
-			}
-		};
-		window.addEventListener("keydown",function(e) {
-			var _g = e.keyCode;
-			switch(_g) {
-			case 37:
+			var _g = _gthis.authorData.questions[q].type;
+			if(_g[1] == 2) {
 				prevQuestion();
+				return;
+			}
+			_gthis.showQuestion(q);
+		};
+		var prevQuestion1 = prevQuestion;
+		var nextQuestion = null;
+		nextQuestion = function() {
+			if(q < _gthis.authorData.questions.length - 1) {
+				q += 1;
+			}
+			var _g1 = _gthis.authorData.questions[q].type;
+			if(_g1[1] == 2) {
+				nextQuestion();
+				return;
+			}
+			_gthis.showQuestion(q);
+		};
+		var nextQuestion1 = nextQuestion;
+		window.addEventListener("keydown",function(e) {
+			var _g2 = e.keyCode;
+			switch(_g2) {
+			case 37:
+				prevQuestion1();
 				break;
 			case 38:
-				var currentIndex = demographicQuestions.indexOf(_gthis.demographicQuestionIndex);
-				var prevIndex = currentIndex < 1 ? demographicQuestions.length - 1 : currentIndex - 1;
-				_gthis.setDemographicQuestion(demographicQuestions[prevIndex]);
+				var currentIndex = _gthis.demographicQuestions.indexOf(_gthis.demographicQuestionIndex);
+				var prevIndex = currentIndex < 1 ? _gthis.demographicQuestions.length - 1 : currentIndex - 1;
+				_gthis.setDemographicQuestion(_gthis.demographicQuestions[prevIndex]);
 				e.preventDefault();
 				break;
 			case 39:
-				nextQuestion();
+				nextQuestion1();
 				break;
 			case 40:
-				var currentIndex1 = demographicQuestions.indexOf(_gthis.demographicQuestionIndex);
-				var nextIndex = currentIndex1 == demographicQuestions.length - 1 ? 0 : currentIndex1 + 1;
-				_gthis.setDemographicQuestion(demographicQuestions[nextIndex]);
+				var currentIndex1 = _gthis.demographicQuestions.indexOf(_gthis.demographicQuestionIndex);
+				var nextIndex = currentIndex1 == _gthis.demographicQuestions.length - 1 ? 0 : currentIndex1 + 1;
+				_gthis.setDemographicQuestion(_gthis.demographicQuestions[nextIndex]);
 				e.preventDefault();
 				break;
 			case 82:
 				_gthis.toggleRadiusScaling(!_gthis.allowRadiusScaling);
 				break;
 			default:
-				var other = _g;
+				var other = _g2;
 				console.log("Keycode " + other + " is not assigned to any action");
 			}
 		});
-		window.document.getElementById("previous-btn").addEventListener("click",prevQuestion);
-		window.document.getElementById("next-btn").addEventListener("click",nextQuestion);
+		window.document.getElementById("previous-btn").addEventListener("click",prevQuestion1);
+		window.document.getElementById("next-btn").addEventListener("click",nextQuestion1);
 		var hammer = new Hammer(this.environment.container,null);
-		hammer.on("swiperight",prevQuestion);
-		hammer.on("swipeleft",nextQuestion);
+		hammer.on("swiperight",prevQuestion1);
+		hammer.on("swipeleft",nextQuestion1);
 		this.labels.radius.addEventListener("change",function(e1) {
 			_gthis.toggleRadiusScaling(_gthis.labels.radius.checked);
 		});
@@ -131,12 +169,10 @@ AgreeOrDisagree.prototype = {
 		if(questionNumber != null) {
 			var groupsInQuestion = this.getGroupsInQuestion(questionNumber);
 			numGroups = groupsInQuestion.length;
-			label = this.authorData.questions[questionNumber].question;
 		} else {
 			numGroups = 1;
-			label = "No demograph selected";
 		}
-		this.labels.demograph.innerText = "Coloring: " + label;
+		this.labels.demograph.value = questionNumber != null ? "" + questionNumber : "";
 		this.color = js_d3_D3.scale.category10().domain(js_d3_D3.range(0,numGroups - 1));
 		this.reRender();
 	}
@@ -390,6 +426,11 @@ haxe_StackItem.Method = function(classname,method) { var $x = ["Method",3,classn
 haxe_StackItem.LocalFunction = function(v) { var $x = ["LocalFunction",4,v]; $x.__enum__ = haxe_StackItem; $x.toString = $estr; return $x; };
 var haxe_IMap = function() { };
 haxe_IMap.__name__ = true;
+var haxe_ds_IntMap = function() {
+	this.h = { };
+};
+haxe_ds_IntMap.__name__ = true;
+haxe_ds_IntMap.__interfaces__ = [haxe_IMap];
 var haxe_ds_ObjectMap = function() {
 	this.h = { __keys__ : { }};
 };
@@ -911,8 +952,6 @@ tink_json_Parser0.__super__ = tink_json_BasicParser;
 tink_json_Parser0.prototype = $extend(tink_json_BasicParser.prototype,{
 	parse0: function() {
 		var _gthis = this;
-		var v_profileInfo = null;
-		var hasv_profileInfo = false;
 		var v_questions = null;
 		var hasv_questions = false;
 		var v_responses = null;
@@ -1113,61 +1152,6 @@ tink_json_Parser0.prototype = $extend(tink_json_BasicParser.prototype,{
 					}
 					v_questions = __ret2;
 					hasv_questions = true;
-				} else if("profileInfo".length == __name__.max - __name__.min && __name__.source.substring(__name__.min,__name__.max) == "profileInfo") {
-					while(this.pos < this.max && this.source.charCodeAt(this.pos) < 33) this.pos++;
-					var v_profileInfo1;
-					if(this.max > this.pos && this.source.charCodeAt(this.pos) == 91) {
-						this.pos += 1;
-						while(this.pos < this.max && this.source.charCodeAt(this.pos) < 33) this.pos++;
-						v_profileInfo1 = true;
-					} else {
-						v_profileInfo1 = false;
-					}
-					if(!v_profileInfo1) {
-						this.die("Expected [");
-					}
-					var __ret3 = [];
-					while(this.pos < this.max && this.source.charCodeAt(this.pos) < 33) this.pos++;
-					var v_profileInfo2;
-					if(this.max > this.pos && this.source.charCodeAt(this.pos) == 93) {
-						this.pos += 1;
-						while(this.pos < this.max && this.source.charCodeAt(this.pos) < 33) this.pos++;
-						v_profileInfo2 = true;
-					} else {
-						v_profileInfo2 = false;
-					}
-					if(!v_profileInfo2) {
-						while(true) {
-							var this1 = this.parseNumber();
-							__ret3.push(Std.parseInt(this1.source.substring(this1.min,this1.max)));
-							while(this.pos < this.max && this.source.charCodeAt(this.pos) < 33) this.pos++;
-							var v_profileInfo3;
-							if(this.max > this.pos && this.source.charCodeAt(this.pos) == 44) {
-								this.pos += 1;
-								while(this.pos < this.max && this.source.charCodeAt(this.pos) < 33) this.pos++;
-								v_profileInfo3 = true;
-							} else {
-								v_profileInfo3 = false;
-							}
-							if(!v_profileInfo3) {
-								break;
-							}
-						}
-						while(this.pos < this.max && this.source.charCodeAt(this.pos) < 33) this.pos++;
-						var v_profileInfo4;
-						if(this.max > this.pos && this.source.charCodeAt(this.pos) == 93) {
-							this.pos += 1;
-							while(this.pos < this.max && this.source.charCodeAt(this.pos) < 33) this.pos++;
-							v_profileInfo4 = true;
-						} else {
-							v_profileInfo4 = false;
-						}
-						if(!v_profileInfo4) {
-							this.die("Expected ]");
-						}
-					}
-					v_profileInfo = __ret3;
-					hasv_profileInfo = true;
 				} else {
 					this.skipValue();
 				}
@@ -1200,7 +1184,7 @@ tink_json_Parser0.prototype = $extend(tink_json_BasicParser.prototype,{
 		var __missing__ = function(field) {
 			return _gthis.die("missing field \"" + field + "\"",__start__);
 		};
-		return { profileInfo : hasv_profileInfo ? v_profileInfo : __missing__("profileInfo"), questions : hasv_questions ? v_questions : __missing__("questions"), responses : hasv_responses ? v_responses : __missing__("responses")};
+		return { questions : hasv_questions ? v_questions : __missing__("questions"), responses : hasv_responses ? v_responses : __missing__("responses")};
 	}
 	,parse1: function() {
 		var _gthis = this;

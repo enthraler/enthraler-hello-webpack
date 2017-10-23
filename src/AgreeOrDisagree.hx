@@ -98,7 +98,7 @@ class AgreeOrDisagree implements HaxeTemplate<AuthorData> {
 		title: Element,
 		question: Element,
 		demograph: Element,
-		radius: Element,
+		radius: InputElement,
 	};
 	var allowRadiusScaling: Bool;
 	var questionIndex: Null<Int>;
@@ -117,7 +117,12 @@ class AgreeOrDisagree implements HaxeTemplate<AuthorData> {
 			<h1 id="title"></h1>
 			<div id="settings">
 				<select><option id="demograph-label"></option></select>
-				<p id="radius-label"></p>
+				<div>
+					<label for="radius-toggle" title="If a respondant rated a question as important, we will make their circle bigger">
+						Show loud voices
+						<input type="checkbox" id="radius-toggle" checked />
+					</label>
+				</div>
 			</div>
 			<div id="d3-container"></div>
 			<div id="question-nav">
@@ -130,7 +135,7 @@ class AgreeOrDisagree implements HaxeTemplate<AuthorData> {
 			title: document.getElementById("title"),
 			question: document.getElementById("question-label"),
 			demograph: document.getElementById("demograph-label"),
-			radius: document.getElementById("radius-label"),
+			radius: cast document.getElementById("radius-toggle"),
 		};
 
 		this.environment = environment;
@@ -241,6 +246,10 @@ class AgreeOrDisagree implements HaxeTemplate<AuthorData> {
 		hammer.on('swiperight', prevQuestion);
 		hammer.on('swipeleft', nextQuestion);
 
+		labels.radius.addEventListener('change', function (e) {
+			this.toggleRadiusScaling(labels.radius.checked);
+		});
+
 		// Resize the iframe to fit the new height.
 		environment.requestHeightChange();
 	}
@@ -255,7 +264,6 @@ class AgreeOrDisagree implements HaxeTemplate<AuthorData> {
 
 	function toggleRadiusScaling(allow: Bool) {
 		this.allowRadiusScaling = allow;
-		this.labels.radius.innerText = 'Radius scaling ${allow ? "on" : "off"} ("r")';
 		reRender();
 	}
 

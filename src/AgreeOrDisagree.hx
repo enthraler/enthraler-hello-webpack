@@ -92,7 +92,7 @@ class AgreeOrDisagree implements HaxeTemplate<AuthorData> {
 	var labels: {
 		title: Element,
 		question: Element,
-		demograph: Element,
+		demograph: SelectElement,
 		radius: InputElement,
 	};
 	var allowRadiusScaling: Bool;
@@ -107,11 +107,17 @@ class AgreeOrDisagree implements HaxeTemplate<AuthorData> {
 	var color: Ordinal;
 	var force: Force; // See https://github.com/d3/d3-3.x-api-reference/blob/master/Force-Layout.md
 
+	// Steam Survey specific stuff
+	var demographicQuestions = [null, 0, 42, 43, 44, 45, 46, 47];
+
 	public function new(environment:Environment) {
 		environment.container.innerHTML = '<div id="ui-container">
 			<h1 id="title"></h1>
 			<div id="settings">
-				<select><option id="demograph-label"></option></select>
+				<div>
+					<select id="demograph-select">
+					</select>
+				</div>
 				<div>
 					<label for="radius-toggle" title="If a respondant rated a question as important, we will make their circle bigger">
 						Show loud voices
@@ -129,7 +135,7 @@ class AgreeOrDisagree implements HaxeTemplate<AuthorData> {
 		this.labels = {
 			title: document.getElementById("title"),
 			question: document.getElementById("question-label"),
-			demograph: document.getElementById("demograph-label"),
+			demograph: cast document.getElementById("demograph-select"),
 			radius: cast document.getElementById("radius-toggle"),
 		};
 
@@ -143,12 +149,38 @@ class AgreeOrDisagree implements HaxeTemplate<AuthorData> {
 		var jsonStr = haxe.Json.stringify(plainJsonData);
 		this.authorData = tink.Json.parse(jsonStr);
 		labels.title.innerText = 'Steam Community Survey';
+		this.setupDemographSelectBox();
 		this.drawTheDots();
 		this.setDemographicQuestion(null);
 		this.toggleRadiusScaling(true);
 		this.showQuestion(null);
 
 		environment.requestHeightChange();
+	}
+
+	function setupDemographSelectBox() {
+		// TODO: make this configurable in authordata
+		var demographLabels = [
+			 0 => "Community",
+			 42 => "# of games",
+			 43 => "Revenue",
+			 44 => "# of employees",
+			 45 => "First release",
+			 46 => "Can contact Valve",
+			 47 => "Would meet with Valve"
+		];
+		var selectOptions = demographicQuestions.map(function (i) {
+			if (i == null) {
+				return '<option value="">Do not highlight demographics</option>';
+			}
+			return '<option value="${i}">${demographLabels[i]}</option>';
+		});
+		this.labels.demograph.innerHTML = selectOptions.join("");
+
+		this.labels.demograph.addEventListener('change', function () {
+			var value = this.labels.demograph.value;
+			this.setDemographicQuestion(value=="" ? null : Std.parseInt(value));
+		});
 	}
 
 	function setNumberOfGroups(num: Int) {
@@ -269,12 +301,10 @@ class AgreeOrDisagree implements HaxeTemplate<AuthorData> {
 		if (questionNumber != null) {
 			var groupsInQuestion = getGroupsInQuestion(questionNumber);
 			numGroups = groupsInQuestion.length;
-			label = this.authorData.questions[questionNumber].question;
 		} else {
 			numGroups = 1;
-			label = 'No demograph selected';
 		}
-		this.labels.demograph.innerText = 'Coloring: ' + label;
+		this.labels.demograph.value = (questionNumber!=null) ? ''+questionNumber : '';
 		this.color = D3.scale.category10().domain(D3.range(0, numGroups - 1));
 		reRender();
 	}

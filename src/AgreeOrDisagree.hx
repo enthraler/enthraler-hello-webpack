@@ -89,9 +89,10 @@ class AgreeOrDisagree implements HaxeTemplate<AuthorData> {
 	var authorData: AuthorData;
 	var uiContainer: DivElement;
 	var labels: {
-		question: ParagraphElement,
-		demograph: ParagraphElement,
-		radius: ParagraphElement,
+		title: Element,
+		question: Element,
+		demograph: Element,
+		radius: Element,
 	};
 	var allowRadiusScaling: Bool;
 	var questionIndex: Null<Int>;
@@ -106,17 +107,21 @@ class AgreeOrDisagree implements HaxeTemplate<AuthorData> {
 	var force: Force; // See https://github.com/d3/d3-3.x-api-reference/blob/master/Force-Layout.md
 
 	public function new(environment:Environment) {
-		this.uiContainer = document.createDivElement();
+		environment.container.innerHTML = '<div id="ui-container">
+			<h1 id="title"></h1>
+			<h2 id="question-label"></h2>
+			<p id="instructions">Use the left and right arrows to switch between questions.</p>
+			<p id="demograph-label"></p>
+			<p id="radius-label"></p>
+			<a href="#" id="previous-btn">Previous Question</a>
+			<a href="#" id="next-btn">Next Question</a>
+		</div>';
 		this.labels = {
-			question: document.createParagraphElement(),
-			demograph: document.createParagraphElement(),
-			radius: document.createParagraphElement(),
-		}
-		uiContainer.appendChild(labels.question);
-		uiContainer.appendChild(labels.demograph);
-		uiContainer.appendChild(labels.radius);
-		uiContainer.className = 'ui-container';
-		environment.container.appendChild(uiContainer);
+			title: document.getElementById("title"),
+			question: document.getElementById("question-label"),
+			demograph: document.getElementById("demograph-label"),
+			radius: document.getElementById("radius-label"),
+		};
 
 		this.environment = environment;
 		this.color = D3.scale.category10().domain(D3.range(1));
@@ -127,6 +132,7 @@ class AgreeOrDisagree implements HaxeTemplate<AuthorData> {
 		// We need to re-parse it if we want it to support our enums correctly.
 		var jsonStr = haxe.Json.stringify(plainJsonData);
 		this.authorData = tink.Json.parse(jsonStr);
+		labels.title.innerText = 'Survey Results';
 		this.drawTheDots();
 		this.setDemographicQuestion(null);
 		this.toggleRadiusScaling(true);
@@ -165,7 +171,7 @@ class AgreeOrDisagree implements HaxeTemplate<AuthorData> {
 			.size([width, height]);
 
 		this.svg = D3
-			.select("body")
+			.select("#container")
 			.append("svg")
 			.attr("width", width)
 			.attr("height", height);
@@ -208,6 +214,14 @@ class AgreeOrDisagree implements HaxeTemplate<AuthorData> {
 			}
 		});
 
+		document
+			.getElementById("previous-btn")
+			.addEventListener("click", function () this.showQuestion(q--));
+
+		document
+			.getElementById("next-btn")
+			.addEventListener("click", function () this.showQuestion(q++));
+
 		// Resize the iframe to fit the new height.
 		environment.requestHeightChange();
 	}
@@ -215,8 +229,8 @@ class AgreeOrDisagree implements HaxeTemplate<AuthorData> {
 	function showQuestion(questionIndex: Null<Int>) {
 		this.questionIndex = questionIndex;
 		var question = this.authorData.questions[questionIndex],
-			label = (questionIndex != null) ? 'Question: ${question.question}' : 'Survey';
-		this.labels.question.innerText = '$label (<-- or -->)';
+			label = (questionIndex != null) ? question.question : 'Survey';
+		this.labels.question.innerText = label;
 		reRender();
 	}
 

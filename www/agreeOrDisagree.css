@@ -2,10 +2,74 @@ body {
 	background: #EDEDED;
 	color: #333333;
 }
-.ui-container, svg {
+
+/* Get the UI container to sit over the visualisation. */
+#ui-container, svg {
 	position: absolute;
 	left: 0;
 	top: 0;
 	right: 0;
+	/* bottom: 0; */
+}
+#ui-container {
+	z-index: 1;
+}
+
+/* Lay out the labels in the UI container */
+
+#ui-container h1,
+#ui-container h2,
+#ui-container p {
+	text-align: center;
+	z-index: 1;
+}
+
+#title {
+	font-size: 14px;
+}
+
+#question {
+	font-size: 18px;
+}
+
+#instructions {
+	font-size: 12px;
+}
+
+/* Style the previous and next buttons. */
+
+#next-btn, #previous-btn {
+	font-size: 0;
+	position: absolute;
+	width: 30%;
+	top: 0;
 	bottom: 0;
+}
+
+#next-btn::before,
+#previous-btn::before {
+	position: absolute;
+	left: 0; top: 0; bottom: 0; right: 0;
+	vertical-align: middle;
+	font-size: 48px;
+	line-height: 400px;
+	padding: 10px;
+}
+
+#next-btn {
+	right: 0;
+	text-align: right;
+}
+
+#next-btn::before {
+	content: ">";
+}
+
+#previous-btn {
+	left: 0;
+	text-align: left;
+}
+
+#previous-btn::before {
+	content: "<";
 }

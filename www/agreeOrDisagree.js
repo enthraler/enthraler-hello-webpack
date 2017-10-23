@@ -23,13 +23,8 @@ var AgreeOrDisagree = function(environment) {
 	this.padding = 6;
 	this.height = 480;
 	this.width = 650;
-	this.uiContainer = window.document.createElement("div");
-	this.labels = { question : window.document.createElement("p"), demograph : window.document.createElement("p"), radius : window.document.createElement("p")};
-	this.uiContainer.appendChild(this.labels.question);
-	this.uiContainer.appendChild(this.labels.demograph);
-	this.uiContainer.appendChild(this.labels.radius);
-	this.uiContainer.className = "ui-container";
-	environment.container.appendChild(this.uiContainer);
+	environment.container.innerHTML = "<div id=\"ui-container\">\n\t\t\t<h1 id=\"title\"></h1>\n\t\t\t<h2 id=\"question-label\"></h2>\n\t\t\t<p id=\"instructions\">Use the left and right arrows to switch between questions.</p>\n\t\t\t<p id=\"demograph-label\"></p>\n\t\t\t<p id=\"radius-label\"></p>\n\t\t\t<a href=\"#\" id=\"previous-btn\">Previous Question</a>\n\t\t\t<a href=\"#\" id=\"next-btn\">Next Question</a>\n\t\t</div>";
+	this.labels = { title : window.document.getElementById("title"), question : window.document.getElementById("question-label"), demograph : window.document.getElementById("demograph-label"), radius : window.document.getElementById("radius-label")};
 	this.environment = environment;
 	this.color = js_d3_D3.scale.category10().domain(js_d3_D3.range(1));
 };
@@ -42,6 +37,7 @@ AgreeOrDisagree.prototype = {
 	,render: function(plainJsonData) {
 		var jsonStr = JSON.stringify(plainJsonData);
 		this.authorData = new tink_json_Parser0().parse(jsonStr);
+		this.labels.title.innerText = "Survey Results";
 		this.drawTheDots();
 		this.setDemographicQuestion(null);
 		this.toggleRadiusScaling(true);
@@ -61,7 +57,7 @@ AgreeOrDisagree.prototype = {
 			return { responseIndex : index, radius : _gthis.maxRadius, color : "" + _gthis.color(i), tooltip : "", cx : _gthis.xScale(i), cy : _gthis.height / 2};
 		});
 		this.force = js_d3_D3.layout.force().nodes(this.nodes).size([this.width,this.height]);
-		this.svg = js_d3_D3.select("body").append("svg").attr("width",this.width).attr("height",this.height);
+		this.svg = js_d3_D3.select("#container").append("svg").attr("width",this.width).attr("height",this.height);
 		this.updateCircles();
 		this.force.gravity(0).charge(0).on("tick",$bind(this,this.tick)).start();
 		var q = 0;
@@ -97,13 +93,21 @@ AgreeOrDisagree.prototype = {
 				console.log("Keycode " + other + " is not assigned to any action");
 			}
 		});
+		window.document.getElementById("previous-btn").addEventListener("click",function() {
+			q -= 1;
+			_gthis.showQuestion(q + 1);
+		});
+		window.document.getElementById("next-btn").addEventListener("click",function() {
+			q += 1;
+			_gthis.showQuestion(q - 1);
+		});
 		this.environment.requestHeightChange();
 	}
 	,showQuestion: function(questionIndex) {
 		this.questionIndex = questionIndex;
 		var question = this.authorData.questions[questionIndex];
-		var label = questionIndex != null ? "Question: " + question.question : "Survey";
-		this.labels.question.innerText = "" + label + " (<-- or -->)";
+		var label = questionIndex != null ? question.question : "Survey";
+		this.labels.question.innerText = label;
 		this.reRender();
 	}
 	,toggleRadiusScaling: function(allow) {

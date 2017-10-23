@@ -58,6 +58,11 @@ extern class D3Tip {
 
 }
 
+extern class Hammer {
+	function new(elm: Element, options: {});
+	function on(event: String, callback: haxe.Constraints.Function): Void;
+}
+
 /**
 	Haxe JS Enthraler Component.
 
@@ -69,11 +74,13 @@ extern class D3Tip {
 **/
 @:enthralerDependency('cdnjs/d3/3.5.17/d3.min', D3)
 //@:enthralerDependency('cdnjs/d3-tip/0.7.1/d3-tip.min', D3Tip)
+@:enthralerDependency('cdnjs/hammer.js/2.0.8/hammer.min', Hammer)
 @:enthralerDependency('css!agreeOrDisagree.css')
+@:enthralerDependency('css!cdnjs/font-awesome/4.7.0/css/font-awesome.css')
 class AgreeOrDisagree implements HaxeTemplate<AuthorData> {
 	// Visualisation config
 	var width = 650;
-	var height = 480;
+	var height = 300;
 	var padding = 6;
 	var minRadius = 4;
 	var maxRadius = 12;
@@ -87,7 +94,6 @@ class AgreeOrDisagree implements HaxeTemplate<AuthorData> {
 	// Enthraler stuff
 	var environment: Environment;
 	var authorData: AuthorData;
-	var uiContainer: DivElement;
 	var labels: {
 		title: Element,
 		question: Element,
@@ -109,12 +115,16 @@ class AgreeOrDisagree implements HaxeTemplate<AuthorData> {
 	public function new(environment:Environment) {
 		environment.container.innerHTML = '<div id="ui-container">
 			<h1 id="title"></h1>
-			<h2 id="question-label"></h2>
-			<p id="instructions">Use the left and right arrows to switch between questions.</p>
-			<p id="demograph-label"></p>
-			<p id="radius-label"></p>
-			<a href="#" id="previous-btn">Previous Question</a>
-			<a href="#" id="next-btn">Next Question</a>
+			<div id="settings">
+				<select><option id="demograph-label"></option></select>
+				<p id="radius-label"></p>
+			</div>
+			<div id="d3-container"></div>
+			<div id="question-nav">
+				<a href="#" id="previous-btn"><i class="fa fa-chevron-left"></i><span class="sr-only">Previous Question</span></a>
+				<h2 id="question-label"></h2>
+				<a href="#" id="next-btn"><i class="fa fa-chevron-right"></i><span class="sr-only">Next Question</span></a>
+			</div>
 		</div>';
 		this.labels = {
 			title: document.getElementById("title"),
@@ -132,7 +142,7 @@ class AgreeOrDisagree implements HaxeTemplate<AuthorData> {
 		// We need to re-parse it if we want it to support our enums correctly.
 		var jsonStr = haxe.Json.stringify(plainJsonData);
 		this.authorData = tink.Json.parse(jsonStr);
-		labels.title.innerText = 'Survey Results';
+		labels.title.innerText = 'Steam Community Survey';
 		this.drawTheDots();
 		this.setDemographicQuestion(null);
 		this.toggleRadiusScaling(true);
@@ -171,10 +181,11 @@ class AgreeOrDisagree implements HaxeTemplate<AuthorData> {
 			.size([width, height]);
 
 		this.svg = D3
-			.select("#container")
+			.select("#d3-container")
 			.append("svg")
 			.attr("width", width)
-			.attr("height", height);
+			.attr("height", height)
+			.attr("viewBox", [].join(','));
 
 		updateCircles();
 
@@ -184,16 +195,20 @@ class AgreeOrDisagree implements HaxeTemplate<AuthorData> {
 			.on("tick", tick)
 			.start();
 
-		var q = 0,
+		var q = -1,
 			demographicQuestions = [null, 0, 42, 43, 44, 45, 46, 47];
+
+		function prevQuestion() if (q > 0) showQuestion(--q);
+		function nextQuestion() if (q < (authorData.questions.length - 1)) showQuestion(++q);
+
 		window.addEventListener('keydown', function (e) {
 			switch e.keyCode {
 				case 37:
 					// Left
-					showQuestion(q--);
+					prevQuestion();
 				case 39:
 					// Right
-					showQuestion(q++);
+					nextQuestion();
 				case 38:
 					// Up
 					var currentIndex = demographicQuestions.indexOf(this.demographicQuestionIndex),
@@ -216,11 +231,15 @@ class AgreeOrDisagree implements HaxeTemplate<AuthorData> {
 
 		document
 			.getElementById("previous-btn")
-			.addEventListener("click", function () this.showQuestion(q--));
+			.addEventListener("click", prevQuestion);
 
 		document
 			.getElementById("next-btn")
-			.addEventListener("click", function () this.showQuestion(q++));
+			.addEventListener("click", nextQuestion);
+
+		var hammer = new Hammer(environment.container, null);
+		hammer.on('swiperight', prevQuestion);
+		hammer.on('swipeleft', nextQuestion);
 
 		// Resize the iframe to fit the new height.
 		environment.requestHeightChange();
@@ -338,7 +357,10 @@ class AgreeOrDisagree implements HaxeTemplate<AuthorData> {
 			node.radius = this.allowRadiusScaling
 				? (response.radius / 3) * maxRadius
 				: maxRadius/3;
-			node.tooltip = '$responseText [$demographText]';
+			node.tooltip = responseText;
+			if (demographText != null) {
+				node.tooltip += ' [$demographText]';
+			}
 			node.color = ''+color.call(demographIndex);
 			return node;
 		});

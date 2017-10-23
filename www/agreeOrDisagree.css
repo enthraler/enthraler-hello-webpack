@@ -4,72 +4,71 @@ body {
 }
 
 /* Get the UI container to sit over the visualisation. */
-#ui-container, svg {
+#ui-container {
 	position: absolute;
 	left: 0;
 	top: 0;
 	right: 0;
-	/* bottom: 0; */
-}
-#ui-container {
-	z-index: 1;
+	bottom: 18px; /* Size of enthraler footer */
+	display: flex;
+	flex-direction: column;
+	justify-content: space-around;
 }
 
 /* Lay out the labels in the UI container */
 
-#ui-container h1,
-#ui-container h2,
-#ui-container p {
-	text-align: center;
-	z-index: 1;
+#d3-container {
+	flex: 4 300px;
+}
+
+#d3-container svg {
+	width: 100%;
+	height: auto;
+	overflow: visible;
 }
 
 #title {
 	font-size: 14px;
+	margin: 0;
 }
 
-#question {
+#question-nav {
+	display: flex;
+	flex-direction: row;
+	justify-content: space-between;
+	align-items: center;
+	flex: 1 60px;
+}
+
+#question-label {
 	font-size: 18px;
+	margin: 0;
+	text-align: center;
+	flex: 1;
 }
-
-#instructions {
-	font-size: 12px;
-}
-
-/* Style the previous and next buttons. */
 
 #next-btn, #previous-btn {
-	font-size: 0;
-	position: absolute;
-	width: 30%;
-	top: 0;
-	bottom: 0;
+	width: 60px;
+	text-align: center;
 }
 
-#next-btn::before,
-#previous-btn::before {
-	position: absolute;
-	left: 0; top: 0; bottom: 0; right: 0;
-	vertical-align: middle;
-	font-size: 48px;
-	line-height: 400px;
-	padding: 10px;
+#next-btn .fa,
+#previous-btn .fa {
+	font-size: 28px;
+	color: rgb(150, 150, 150);
 }
 
-#next-btn {
-	right: 0;
-	text-align: right;
+#next-btn:hover .fa,
+#previous-btn:hover .fa {
+	color: rgb(100, 100, 100);
 }
 
-#next-btn::before {
-	content: ">";
+.sr-only {
+	display: none;
 }
 
-#previous-btn {
-	left: 0;
-	text-align: left;
-}
-
-#previous-btn::before {
-	content: "<";
+#settings {
+	display: flex;
+	flex-direction: row;
+	justify-content: space-between;
 }

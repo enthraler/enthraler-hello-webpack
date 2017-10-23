@@ -21,9 +21,9 @@ var AgreeOrDisagree = function(environment) {
 	this.maxRadius = 12;
 	this.minRadius = 4;
 	this.padding = 6;
-	this.height = 480;
+	this.height = 300;
 	this.width = 650;
-	environment.container.innerHTML = "<div id=\"ui-container\">\n\t\t\t<h1 id=\"title\"></h1>\n\t\t\t<h2 id=\"question-label\"></h2>\n\t\t\t<p id=\"instructions\">Use the left and right arrows to switch between questions.</p>\n\t\t\t<p id=\"demograph-label\"></p>\n\t\t\t<p id=\"radius-label\"></p>\n\t\t\t<a href=\"#\" id=\"previous-btn\">Previous Question</a>\n\t\t\t<a href=\"#\" id=\"next-btn\">Next Question</a>\n\t\t</div>";
+	environment.container.innerHTML = "<div id=\"ui-container\">\n\t\t\t<h1 id=\"title\"></h1>\n\t\t\t<div id=\"settings\">\n\t\t\t\t<select><option id=\"demograph-label\"></option></select>\n\t\t\t\t<p id=\"radius-label\"></p>\n\t\t\t</div>\n\t\t\t<div id=\"d3-container\"></div>\n\t\t\t<div id=\"question-nav\">\n\t\t\t\t<a href=\"#\" id=\"previous-btn\"><i class=\"fa fa-chevron-left\"></i><span class=\"sr-only\">Previous Question</span></a>\n\t\t\t\t<h2 id=\"question-label\"></h2>\n\t\t\t\t<a href=\"#\" id=\"next-btn\"><i class=\"fa fa-chevron-right\"></i><span class=\"sr-only\">Next Question</span></a>\n\t\t\t</div>\n\t\t</div>";
 	this.labels = { title : window.document.getElementById("title"), question : window.document.getElementById("question-label"), demograph : window.document.getElementById("demograph-label"), radius : window.document.getElementById("radius-label")};
 	this.environment = environment;
 	this.color = js_d3_D3.scale.category10().domain(js_d3_D3.range(1));
@@ -37,7 +37,7 @@ AgreeOrDisagree.prototype = {
 	,render: function(plainJsonData) {
 		var jsonStr = JSON.stringify(plainJsonData);
 		this.authorData = new tink_json_Parser0().parse(jsonStr);
-		this.labels.title.innerText = "Survey Results";
+		this.labels.title.innerText = "Steam Community Survey";
 		this.drawTheDots();
 		this.setDemographicQuestion(null);
 		this.toggleRadiusScaling(true);
@@ -57,17 +57,28 @@ AgreeOrDisagree.prototype = {
 			return { responseIndex : index, radius : _gthis.maxRadius, color : "" + _gthis.color(i), tooltip : "", cx : _gthis.xScale(i), cy : _gthis.height / 2};
 		});
 		this.force = js_d3_D3.layout.force().nodes(this.nodes).size([this.width,this.height]);
-		this.svg = js_d3_D3.select("#container").append("svg").attr("width",this.width).attr("height",this.height);
+		this.svg = js_d3_D3.select("#d3-container").append("svg").attr("width",this.width).attr("height",this.height).attr("viewBox",[].join(","));
 		this.updateCircles();
 		this.force.gravity(0).charge(0).on("tick",$bind(this,this.tick)).start();
-		var q = 0;
+		var q = -1;
 		var demographicQuestions = [null,0,42,43,44,45,46,47];
+		var prevQuestion = function() {
+			if(q > 0) {
+				var prevQuestion1 = q -= 1;
+				_gthis.showQuestion(prevQuestion1);
+			}
+		};
+		var nextQuestion = function() {
+			if(q < _gthis.authorData.questions.length - 1) {
+				var nextQuestion1 = q += 1;
+				_gthis.showQuestion(nextQuestion1);
+			}
+		};
 		window.addEventListener("keydown",function(e) {
 			var _g = e.keyCode;
 			switch(_g) {
 			case 37:
-				q -= 1;
-				_gthis.showQuestion(q + 1);
+				prevQuestion();
 				break;
 			case 38:
 				var currentIndex = demographicQuestions.indexOf(_gthis.demographicQuestionIndex);
@@ -76,8 +87,7 @@ AgreeOrDisagree.prototype = {
 				e.preventDefault();
 				break;
 			case 39:
-				q += 1;
-				_gthis.showQuestion(q - 1);
+				nextQuestion();
 				break;
 			case 40:
 				var currentIndex1 = demographicQuestions.indexOf(_gthis.demographicQuestionIndex);
@@ -93,14 +103,11 @@ AgreeOrDisagree.prototype = {
 				console.log("Keycode " + other + " is not assigned to any action");
 			}
 		});
-		window.document.getElementById("previous-btn").addEventListener("click",function() {
-			q -= 1;
-			_gthis.showQuestion(q + 1);
-		});
-		window.document.getElementById("next-btn").addEventListener("click",function() {
-			q += 1;
-			_gthis.showQuestion(q - 1);
-		});
+		window.document.getElementById("previous-btn").addEventListener("click",prevQuestion);
+		window.document.getElementById("next-btn").addEventListener("click",nextQuestion);
+		var hammer = new Hammer(this.environment.container,null);
+		hammer.on("swiperight",prevQuestion);
+		hammer.on("swipeleft",nextQuestion);
 		this.environment.requestHeightChange();
 	}
 	,showQuestion: function(questionIndex) {
@@ -227,7 +234,10 @@ AgreeOrDisagree.prototype = {
 			var demographIndex = groupsInDemographicQuestion.indexOf(demographText);
 			node.cx = _gthis.xScale(groupIndex);
 			node.radius = _gthis.allowRadiusScaling ? response3.radius / 3 * _gthis.maxRadius : _gthis.maxRadius / 3;
-			node.tooltip = "" + responseText + " [" + demographText + "]";
+			node.tooltip = responseText;
+			if(demographText != null) {
+				node.tooltip += " [" + demographText + "]";
+			}
 			node.color = "" + _gthis.color(demographIndex);
 			return node;
 		});
@@ -1629,10 +1639,13 @@ tink_json_Value.VArray = function(a) { var $x = ["VArray",4,a]; $x.__enum__ = ti
 tink_json_Value.VObject = function(a) { var $x = ["VObject",5,a]; $x.__enum__ = tink_json_Value; $x.toString = $estr; return $x; };
 var $_, $fid = 0;
 function $bind(o,m) { if( m == null ) return null; if( m.__id__ == null ) m.__id__ = $fid++; var f; if( o.hx__closures__ == null ) o.hx__closures__ = {}; else f = o.hx__closures__[m.__id__]; if( f == null ) { f = function(){ return f.method.apply(f.scope, arguments); }; f.scope = o; f.method = m; o.hx__closures__[m.__id__] = f; } return f; }
-$global.define(["cdnjs/d3/3.5.17/d3.min","css!agreeOrDisagree.css"],function(js_d3_D3,_) {
+$global.define(["cdnjs/d3/3.5.17/d3.min","cdnjs/hammer.js/2.0.8/hammer.min","css!agreeOrDisagree.css","css!cdnjs/font-awesome/4.7.0/css/font-awesome.css"],function(js_d3_D3,Hammer,_,_1) {
 	$global.js_d3_D3 = js_d3_D3;
+	$global.Hammer = Hammer;
 	return AgreeOrDisagree;
 });
 String.__name__ = true;
 Array.__name__ = true;
 })(typeof window != "undefined" ? window : typeof global != "undefined" ? global : typeof self != "undefined" ? self : this);
+
+//# sourceMappingURL=agreeOrDisagree.js.map

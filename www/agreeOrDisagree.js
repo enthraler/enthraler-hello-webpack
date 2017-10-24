@@ -8,9 +8,7 @@ function $extend(from, fields) {
 	return proto;
 }
 var QuestionType = { __ename__ : true, __constructs__ : ["GroupedAnswer","GroupedWeightedAnswer","FreeText"] };
-QuestionType.GroupedAnswer = ["GroupedAnswer",0];
-QuestionType.GroupedAnswer.toString = $estr;
-QuestionType.GroupedAnswer.__enum__ = QuestionType;
+QuestionType.GroupedAnswer = function(groups,defaultGroup) { var $x = ["GroupedAnswer",0,groups,defaultGroup]; $x.__enum__ = QuestionType; $x.toString = $estr; return $x; };
 QuestionType.GroupedWeightedAnswer = function(groups) { var $x = ["GroupedWeightedAnswer",1,groups]; $x.__enum__ = QuestionType; $x.toString = $estr; return $x; };
 QuestionType.FreeText = ["FreeText",2];
 QuestionType.FreeText.toString = $estr;
@@ -192,22 +190,36 @@ AgreeOrDisagree.prototype = {
 			var _g = question.type;
 			switch(_g[1]) {
 			case 0:
-				var _g1 = 0;
-				var _g11 = this.authorData.responses;
-				while(_g1 < _g11.length) {
-					var respondant = _g11[_g1];
-					++_g1;
-					var response = respondant[questionIndex];
-					addGroup(response);
+				var defaultGroup = _g[3];
+				var groups = _g[2];
+				if(groups != null) {
+					if(defaultGroup != null) {
+						addGroup(defaultGroup);
+					}
+					var _g1 = 0;
+					while(_g1 < groups.length) {
+						var group = groups[_g1];
+						++_g1;
+						addGroup(group);
+					}
+				} else {
+					var _g2 = 0;
+					var _g11 = this.authorData.responses;
+					while(_g2 < _g11.length) {
+						var respondant = _g11[_g2];
+						++_g2;
+						var response = respondant[questionIndex];
+						addGroup(response);
+					}
 				}
 				break;
 			case 1:
-				var groups = _g[2];
-				var _g2 = 0;
-				while(_g2 < groups.length) {
-					var group = groups[_g2];
-					++_g2;
-					addGroup(group.group);
+				var groups1 = _g[2];
+				var _g3 = 0;
+				while(_g3 < groups1.length) {
+					var group1 = groups1[_g3];
+					++_g3;
+					addGroup(group1.group);
 				}
 				break;
 			case 2:
@@ -227,18 +239,32 @@ AgreeOrDisagree.prototype = {
 			var _g = question.type;
 			switch(_g[1]) {
 			case 0:
-				getResponse = function(response) {
-					return { group : response, radius : 1};
-				};
+				var defaultGroup = _g[3];
+				var groups = _g[2];
+				if(groups != null) {
+					getResponse = function(response) {
+						if(groups.indexOf(response) > -1) {
+							return { group : response, radius : 1};
+						} else if(defaultGroup != null) {
+							return { group : defaultGroup, radius : 1};
+						} else {
+							return { group : "", radius : 0};
+						}
+					};
+				} else {
+					getResponse = function(response1) {
+						return { group : response1, radius : 1};
+					};
+				}
 				break;
 			case 1:
-				var groups = _g[2];
-				getResponse = function(response1) {
+				var groups1 = _g[2];
+				getResponse = function(response2) {
 					var _g1 = 0;
-					while(_g1 < groups.length) {
-						var group = groups[_g1];
+					while(_g1 < groups1.length) {
+						var group = groups1[_g1];
 						++_g1;
-						if(group.value == response1) {
+						if(group.value == response2) {
 							return group;
 						}
 					}
@@ -263,13 +289,13 @@ AgreeOrDisagree.prototype = {
 				node.cx = -1;
 				return node;
 			}
-			var response2 = getResponse(responseText);
-			var groupIndex = allGroups.indexOf(response2.group);
+			var response3 = getResponse(responseText);
+			var groupIndex = allGroups.indexOf(response3.group);
 			var demographText = respondant[_gthis.demographicQuestionIndex];
 			var groupsInDemographicQuestion = _gthis.getGroupsInQuestion(_gthis.demographicQuestionIndex);
 			var demographIndex = groupsInDemographicQuestion.indexOf(demographText);
 			node.cx = _gthis.xScale(groupIndex);
-			node.radius = _gthis.allowRadiusScaling ? response2.radius / 3 * _gthis.maxRadius : _gthis.maxRadius / 3;
+			node.radius = _gthis.allowRadiusScaling ? response3.radius / 3 * _gthis.maxRadius : _gthis.maxRadius / 3;
 			node.tooltip = responseText;
 			if(demographText != null) {
 				node.tooltip += " [" + demographText + "]";
@@ -1281,22 +1307,24 @@ tink_json_Parser0.prototype = $extend(tink_json_BasicParser.prototype,{
 		}
 		if(tmp) {
 			var _g = tink_json__$Parser_JsonString_$Impl_$.toString(this.parseRestOfString());
-			switch(_g) {
-			case "FreeText":
+			if(_g == "FreeText") {
 				return QuestionType.FreeText;
-			case "GroupedAnswer":
-				return QuestionType.GroupedAnswer;
-			default:
+			} else {
 				var invalid = _g;
 				throw new js__$Boot_HaxeError(new tink_core_TypedError(422,"Invalid constructor " + invalid,{ fileName : "GenReader.hx", lineNumber : 302, className : "tink.json.Parser0", methodName : "parse2"}));
 			}
 		} else {
 			var __ret = this.parse4();
-			var o = __ret.GroupedWeightedAnswer;
+			var o = __ret.GroupedAnswer;
 			if(o != null) {
-				return QuestionType.GroupedWeightedAnswer(o.groups);
+				return QuestionType.GroupedAnswer(o.groups,o.defaultGroup);
 			} else {
-				throw new js__$Boot_HaxeError(new tink_core_TypedError(422,"Cannot process " + Std.string(__ret),{ fileName : "GenReader.hx", lineNumber : 291, className : "tink.json.Parser0", methodName : "parse2"}));
+				var o1 = __ret.GroupedWeightedAnswer;
+				if(o1 != null) {
+					return QuestionType.GroupedWeightedAnswer(o1.groups);
+				} else {
+					throw new js__$Boot_HaxeError(new tink_core_TypedError(422,"Cannot process " + Std.string(__ret),{ fileName : "GenReader.hx", lineNumber : 291, className : "tink.json.Parser0", methodName : "parse2"}));
+				}
 			}
 		}
 	}
@@ -1391,6 +1419,7 @@ tink_json_Parser0.prototype = $extend(tink_json_BasicParser.prototype,{
 	}
 	,parse4: function() {
 		var _gthis = this;
+		var v_GroupedAnswer = null;
 		var v_GroupedWeightedAnswer = null;
 		var __start__ = this.pos;
 		while(this.pos < this.max && this.source.charCodeAt(this.pos) < 33) this.pos++;
@@ -1442,7 +1471,22 @@ tink_json_Parser0.prototype = $extend(tink_json_BasicParser.prototype,{
 					if(v_GroupedWeightedAnswer1) {
 						v_GroupedWeightedAnswer = null;
 					} else {
-						v_GroupedWeightedAnswer = this.parse5();
+						v_GroupedWeightedAnswer = this.parse6();
+					}
+				} else if("GroupedAnswer".length == __name__.max - __name__.min && __name__.source.substring(__name__.min,__name__.max) == "GroupedAnswer") {
+					while(this.pos < this.max && this.source.charCodeAt(this.pos) < 33) this.pos++;
+					var v_GroupedAnswer1;
+					if(this.max > this.pos + 3 && this.source.charCodeAt(this.pos) == 110 && this.source.charCodeAt(this.pos + 1) == 117 && this.source.charCodeAt(this.pos + 2) == 108 && this.source.charCodeAt(this.pos + 3) == 108) {
+						this.pos += 4;
+						while(this.pos < this.max && this.source.charCodeAt(this.pos) < 33) this.pos++;
+						v_GroupedAnswer1 = true;
+					} else {
+						v_GroupedAnswer1 = false;
+					}
+					if(v_GroupedAnswer1) {
+						v_GroupedAnswer = null;
+					} else {
+						v_GroupedAnswer = this.parse5();
 					}
 				} else {
 					this.skipValue();
@@ -1476,9 +1520,165 @@ tink_json_Parser0.prototype = $extend(tink_json_BasicParser.prototype,{
 		var __missing__ = function(field) {
 			return _gthis.die("missing field \"" + field + "\"",__start__);
 		};
-		return { GroupedWeightedAnswer : v_GroupedWeightedAnswer};
+		return { GroupedAnswer : v_GroupedAnswer, GroupedWeightedAnswer : v_GroupedWeightedAnswer};
 	}
 	,parse5: function() {
+		var _gthis = this;
+		var v_defaultGroup = null;
+		var v_groups = null;
+		var __start__ = this.pos;
+		while(this.pos < this.max && this.source.charCodeAt(this.pos) < 33) this.pos++;
+		var tmp;
+		if(this.max > this.pos && this.source.charCodeAt(this.pos) == 123) {
+			this.pos += 1;
+			while(this.pos < this.max && this.source.charCodeAt(this.pos) < 33) this.pos++;
+			tmp = true;
+		} else {
+			tmp = false;
+		}
+		if(!tmp) {
+			this.die("Expected {");
+		}
+		while(this.pos < this.max && this.source.charCodeAt(this.pos) < 33) this.pos++;
+		var tmp1;
+		if(this.max > this.pos && this.source.charCodeAt(this.pos) == 125) {
+			this.pos += 1;
+			while(this.pos < this.max && this.source.charCodeAt(this.pos) < 33) this.pos++;
+			tmp1 = true;
+		} else {
+			tmp1 = false;
+		}
+		if(!tmp1) {
+			while(true) {
+				var __name__ = this.parseString();
+				while(this.pos < this.max && this.source.charCodeAt(this.pos) < 33) this.pos++;
+				var tmp2;
+				if(this.max > this.pos && this.source.charCodeAt(this.pos) == 58) {
+					this.pos += 1;
+					while(this.pos < this.max && this.source.charCodeAt(this.pos) < 33) this.pos++;
+					tmp2 = true;
+				} else {
+					tmp2 = false;
+				}
+				if(!tmp2) {
+					this.die("Expected :");
+				}
+				if("groups".length == __name__.max - __name__.min && __name__.source.substring(__name__.min,__name__.max) == "groups") {
+					while(this.pos < this.max && this.source.charCodeAt(this.pos) < 33) this.pos++;
+					var v_groups1;
+					if(this.max > this.pos + 3 && this.source.charCodeAt(this.pos) == 110 && this.source.charCodeAt(this.pos + 1) == 117 && this.source.charCodeAt(this.pos + 2) == 108 && this.source.charCodeAt(this.pos + 3) == 108) {
+						this.pos += 4;
+						while(this.pos < this.max && this.source.charCodeAt(this.pos) < 33) this.pos++;
+						v_groups1 = true;
+					} else {
+						v_groups1 = false;
+					}
+					if(v_groups1) {
+						v_groups = null;
+					} else {
+						while(this.pos < this.max && this.source.charCodeAt(this.pos) < 33) this.pos++;
+						var v_groups2;
+						if(this.max > this.pos && this.source.charCodeAt(this.pos) == 91) {
+							this.pos += 1;
+							while(this.pos < this.max && this.source.charCodeAt(this.pos) < 33) this.pos++;
+							v_groups2 = true;
+						} else {
+							v_groups2 = false;
+						}
+						if(!v_groups2) {
+							this.die("Expected [");
+						}
+						var __ret = [];
+						while(this.pos < this.max && this.source.charCodeAt(this.pos) < 33) this.pos++;
+						var v_groups3;
+						if(this.max > this.pos && this.source.charCodeAt(this.pos) == 93) {
+							this.pos += 1;
+							while(this.pos < this.max && this.source.charCodeAt(this.pos) < 33) this.pos++;
+							v_groups3 = true;
+						} else {
+							v_groups3 = false;
+						}
+						if(!v_groups3) {
+							while(true) {
+								__ret.push(tink_json__$Parser_JsonString_$Impl_$.toString(this.parseString()));
+								while(this.pos < this.max && this.source.charCodeAt(this.pos) < 33) this.pos++;
+								var v_groups4;
+								if(this.max > this.pos && this.source.charCodeAt(this.pos) == 44) {
+									this.pos += 1;
+									while(this.pos < this.max && this.source.charCodeAt(this.pos) < 33) this.pos++;
+									v_groups4 = true;
+								} else {
+									v_groups4 = false;
+								}
+								if(!v_groups4) {
+									break;
+								}
+							}
+							while(this.pos < this.max && this.source.charCodeAt(this.pos) < 33) this.pos++;
+							var v_groups5;
+							if(this.max > this.pos && this.source.charCodeAt(this.pos) == 93) {
+								this.pos += 1;
+								while(this.pos < this.max && this.source.charCodeAt(this.pos) < 33) this.pos++;
+								v_groups5 = true;
+							} else {
+								v_groups5 = false;
+							}
+							if(!v_groups5) {
+								this.die("Expected ]");
+							}
+						}
+						v_groups = __ret;
+					}
+				} else if("defaultGroup".length == __name__.max - __name__.min && __name__.source.substring(__name__.min,__name__.max) == "defaultGroup") {
+					while(this.pos < this.max && this.source.charCodeAt(this.pos) < 33) this.pos++;
+					var v_defaultGroup1;
+					if(this.max > this.pos + 3 && this.source.charCodeAt(this.pos) == 110 && this.source.charCodeAt(this.pos + 1) == 117 && this.source.charCodeAt(this.pos + 2) == 108 && this.source.charCodeAt(this.pos + 3) == 108) {
+						this.pos += 4;
+						while(this.pos < this.max && this.source.charCodeAt(this.pos) < 33) this.pos++;
+						v_defaultGroup1 = true;
+					} else {
+						v_defaultGroup1 = false;
+					}
+					if(v_defaultGroup1) {
+						v_defaultGroup = null;
+					} else {
+						v_defaultGroup = tink_json__$Parser_JsonString_$Impl_$.toString(this.parseString());
+					}
+				} else {
+					this.skipValue();
+				}
+				while(this.pos < this.max && this.source.charCodeAt(this.pos) < 33) this.pos++;
+				var tmp3;
+				if(this.max > this.pos && this.source.charCodeAt(this.pos) == 44) {
+					this.pos += 1;
+					while(this.pos < this.max && this.source.charCodeAt(this.pos) < 33) this.pos++;
+					tmp3 = true;
+				} else {
+					tmp3 = false;
+				}
+				if(!tmp3) {
+					break;
+				}
+			}
+			while(this.pos < this.max && this.source.charCodeAt(this.pos) < 33) this.pos++;
+			var tmp4;
+			if(this.max > this.pos && this.source.charCodeAt(this.pos) == 125) {
+				this.pos += 1;
+				while(this.pos < this.max && this.source.charCodeAt(this.pos) < 33) this.pos++;
+				tmp4 = true;
+			} else {
+				tmp4 = false;
+			}
+			if(!tmp4) {
+				this.die("Expected }");
+			}
+		}
+		var __missing__ = function(field) {
+			return _gthis.die("missing field \"" + field + "\"",__start__);
+		};
+		return { defaultGroup : v_defaultGroup, groups : v_groups};
+	}
+	,parse6: function() {
 		var _gthis = this;
 		var v_groups = null;
 		var hasv_groups = false;

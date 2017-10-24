@@ -18,7 +18,7 @@ typedef Question = {
 }
 
 enum QuestionType {
-    GroupedAnswer;
+    GroupedAnswer(?groups: Array<String>, ?defaultGroup: String);
     GroupedWeightedAnswer(groups: ResponseGroups);
     FreeText;
 }
@@ -68,7 +68,7 @@ extern class Hammer {
 	Note: the macro will overwrite the `@:native` metadata on any externs to a custom global variable, and set that variable during the define function.
 **/
 @:enthralerDependency('cdnjs/d3/3.5.17/d3.min', D3)
-//@:enthralerDependency('cdnjs/d3-tip/0.7.1/d3-tip.min', D3Tip)
+// @:enthralerDependency('cdnjs/d3-tip/0.7.1/d3-tip.min', D3Tip)
 @:enthralerDependency('cdnjs/hammer.js/2.0.8/hammer.min', Hammer)
 @:enthralerDependency('css!agreeOrDisagree.css')
 @:enthralerDependency('css!cdnjs/font-awesome/4.7.0/css/font-awesome.css')
@@ -340,10 +340,19 @@ class AgreeOrDisagree implements HaxeTemplate<AuthorData> {
 
 		if (question != null) {
 			switch question.type {
-				case GroupedAnswer:
-					for (respondant in authorData.responses) {
-						var response = respondant[questionIndex];
-						addGroup(response);
+				case GroupedAnswer(groups, defaultGroup):
+					if (groups != null) {
+						if (defaultGroup != null) {
+							addGroup(defaultGroup);
+						}
+						for (group in groups) {
+							addGroup(group);
+						}
+					} else {
+						for (respondant in authorData.responses) {
+							var response = respondant[questionIndex];
+							addGroup(response);
+						}
 					}
 				case GroupedWeightedAnswer(groups):
 					for (group in groups) {
@@ -366,8 +375,16 @@ class AgreeOrDisagree implements HaxeTemplate<AuthorData> {
 
 		if (question != null) {
 			switch question.type {
-				case GroupedAnswer:
-					getResponse = function (response: String) return {group: response, radius: 1};
+				case GroupedAnswer(groups, defaultGroup):
+					if (groups != null) {
+						getResponse = function (response: String)
+							return
+								if (groups.indexOf(response) > -1) {group: response, radius: 1};
+								else if (defaultGroup != null) {group: defaultGroup, radius: 1};
+								else {group: '', radius: 0};
+					} else {
+						getResponse = function (response: String) return {group: response, radius: 1};
+					}
 				case GroupedWeightedAnswer(groups):
 					getResponse = function (response) {
 						for (group in groups) {

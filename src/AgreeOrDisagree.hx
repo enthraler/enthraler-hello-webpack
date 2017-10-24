@@ -502,7 +502,12 @@ class AgreeOrDisagree implements HaxeTemplate<AuthorData> {
 		groupLabels
 			.text(function (groupName) return groupName)
 			.attr('x', function (groupName) return xScale.call(allGroups.indexOf(groupName)))
-			.attr('y', height);
+			.attr('y', height)
+			.attr('transform', function (groupName) {
+				var x = xScale.call(allGroups.indexOf(groupName)),
+					y = height;
+				return 'rotate(270, $x, $y)';
+			});
 	}
 
 	// Move nodes toward cluster focus.

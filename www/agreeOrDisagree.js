@@ -334,7 +334,11 @@ AgreeOrDisagree.prototype = {
 			return groupName;
 		}).attr("x",function(groupName1) {
 			return _gthis.xScale(allGroups.indexOf(groupName1));
-		}).attr("y",this.height);
+		}).attr("y",this.height).attr("transform",function(groupName2) {
+			var x = _gthis.xScale(allGroups.indexOf(groupName2));
+			var y = _gthis.height;
+			return "rotate(270, " + x + ", " + y + ")";
+		});
 	}
 	,gravity: function(alpha) {
 		return function(d) {

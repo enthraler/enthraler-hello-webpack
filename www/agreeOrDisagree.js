@@ -300,7 +300,8 @@ AgreeOrDisagree.prototype = {
 			node.radius = _gthis.allowRadiusScaling ? response3.radius / 3 * _gthis.maxRadius : _gthis.maxRadius / 3;
 			node.tooltip = responseText;
 			if(demographText != null) {
-				node.tooltip += " [" + demographText + "]";
+				var demographQuestion = _gthis.demographLabels.h[_gthis.demographicQuestionIndex].label;
+				node.tooltip += " [" + demographQuestion + ": " + demographText + "]";
 			}
 			node.color = "" + _gthis.color(demographIndex);
 			return node;

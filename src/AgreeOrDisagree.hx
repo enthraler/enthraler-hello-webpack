@@ -439,7 +439,8 @@ class AgreeOrDisagree implements HaxeTemplate<AuthorData> {
 				: maxRadius/3;
 			node.tooltip = responseText;
 			if (demographText != null) {
-				node.tooltip += ' [$demographText]';
+				var demographQuestion = demographLabels[demographicQuestionIndex].label;
+				node.tooltip += ' [$demographQuestion: $demographText]';
 			}
 			node.color = ''+color(demographIndex);
 			return node;

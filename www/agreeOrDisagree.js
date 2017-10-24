@@ -162,13 +162,10 @@ AgreeOrDisagree.prototype = {
 	}
 	,setDemographicQuestion: function(questionNumber) {
 		this.demographicQuestionIndex = questionNumber;
-		var numGroups;
-		var label;
+		var numGroups = 1;
 		if(questionNumber != null) {
 			var groupsInQuestion = this.getGroupsInQuestion(questionNumber);
 			numGroups = groupsInQuestion.length;
-		} else {
-			numGroups = 1;
 		}
 		this.labels.demograph.value = questionNumber != null ? "" + questionNumber : "";
 		if(this.demographLabels.h[questionNumber] == null || !this.demographLabels.h[questionNumber].useLinearColours) {
@@ -181,6 +178,7 @@ AgreeOrDisagree.prototype = {
 	,reRender: function() {
 		this.updateNodes();
 		this.updateCircles();
+		this.updateGroupLabels();
 	}
 	,getGroupsInQuestion: function(questionIndex) {
 		var allGroups = [];
@@ -324,6 +322,19 @@ AgreeOrDisagree.prototype = {
 		});
 		this.circle.exit().remove();
 		this.force.resume();
+	}
+	,updateGroupLabels: function() {
+		var _gthis = this;
+		var labels = this.getGroupsInQuestion(this.questionIndex);
+		this.groupLabels = this.svg.selectAll("text.group-label").data(labels);
+		this.groupLabels.enter().append("text").attr("class","group-label");
+		this.groupLabels.exit().remove();
+		var allGroups = this.getGroupsInQuestion(this.questionIndex);
+		this.groupLabels.text(function(groupName) {
+			return groupName;
+		}).attr("x",function(groupName1) {
+			return _gthis.xScale(allGroups.indexOf(groupName1));
+		}).attr("y",this.height);
 	}
 	,gravity: function(alpha) {
 		return function(d) {

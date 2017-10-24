@@ -103,6 +103,7 @@ class AgreeOrDisagree implements HaxeTemplate<AuthorData> {
 	var svg: Selection;
 	var circle: Selection;
 	var nodes: Array<CircleNode>;
+	var groupLabels: Selection;
 	var xScale: Ordinal;
 	var color: ScaleFn;
 	var force: Force; // See https://github.com/d3/d3-3.x-api-reference/blob/master/Force-Layout.md
@@ -313,13 +314,10 @@ class AgreeOrDisagree implements HaxeTemplate<AuthorData> {
 
 	function setDemographicQuestion(questionNumber: Null<Int>) {
 		this.demographicQuestionIndex = questionNumber;
-		var numGroups,
-			label;
+		var numGroups = 1;
 		if (questionNumber != null) {
 			var groupsInQuestion = getGroupsInQuestion(questionNumber);
 			numGroups = groupsInQuestion.length;
-		} else {
-			numGroups = 1;
 		}
 		this.labels.demograph.value = (questionNumber!=null) ? ''+questionNumber : '';
 		// TODO: make these colour scales configurable in the JSON.
@@ -339,6 +337,7 @@ class AgreeOrDisagree implements HaxeTemplate<AuthorData> {
 	function reRender() {
 		updateNodes();
 		updateCircles();
+		updateGroupLabels();
 	}
 
 	function getGroupsInQuestion(questionIndex) {
@@ -482,6 +481,28 @@ class AgreeOrDisagree implements HaxeTemplate<AuthorData> {
 
 		// Re-trigger the momentum on the gravity.
 		this.force.resume();
+	}
+
+	function updateGroupLabels() {
+		var labels = getGroupsInQuestion(this.questionIndex);
+
+		// Create the selection and load the data.
+		groupLabels = svg.selectAll("text.group-label").data(labels);
+
+		// Add missing labels
+		groupLabels.enter()
+			.append("text")
+			.attr('class', 'group-label');
+
+		// Delete circles that no longer need to be here
+		groupLabels.exit().remove();
+
+		// Update the current labels.
+		var allGroups = getGroupsInQuestion(questionIndex);
+		groupLabels
+			.text(function (groupName) return groupName)
+			.attr('x', function (groupName) return xScale.call(allGroups.indexOf(groupName)))
+			.attr('y', height);
 	}
 
 	// Move nodes toward cluster focus.

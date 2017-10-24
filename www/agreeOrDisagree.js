@@ -8,7 +8,7 @@ function $extend(from, fields) {
 	return proto;
 }
 var QuestionType = { __ename__ : true, __constructs__ : ["GroupedAnswer","GroupedWeightedAnswer","FreeText"] };
-QuestionType.GroupedAnswer = function(groups,defaultGroup) { var $x = ["GroupedAnswer",0,groups,defaultGroup]; $x.__enum__ = QuestionType; $x.toString = $estr; return $x; };
+QuestionType.GroupedAnswer = function(groups,defaultGroup,colors) { var $x = ["GroupedAnswer",0,groups,defaultGroup,colors]; $x.__enum__ = QuestionType; $x.toString = $estr; return $x; };
 QuestionType.GroupedWeightedAnswer = function(groups) { var $x = ["GroupedWeightedAnswer",1,groups]; $x.__enum__ = QuestionType; $x.toString = $estr; return $x; };
 QuestionType.FreeText = ["FreeText",2];
 QuestionType.FreeText.toString = $estr;
@@ -17,15 +17,15 @@ var enthraler_HaxeTemplate = function() { };
 enthraler_HaxeTemplate.__name__ = true;
 var AgreeOrDisagree = function(environment) {
 	var _g = new haxe_ds_IntMap();
-	_g.h[0] = { label : "Community", useLinearColours : false};
-	_g.h[42] = { label : "# of games", useLinearColours : true};
-	_g.h[43] = { label : "Revenue", useLinearColours : true};
-	_g.h[44] = { label : "# of employees", useLinearColours : true};
-	_g.h[45] = { label : "First release", useLinearColours : true};
-	_g.h[46] = { label : "Can contact Valve", useLinearColours : false};
-	_g.h[47] = { label : "Would meet with Valve", useLinearColours : false};
+	_g.h[0] = "Community";
+	_g.h[42] = "# of games";
+	_g.h[43] = "Revenue";
+	_g.h[44] = "# of employees";
+	_g.h[45] = "First release";
+	_g.h[46] = "Can contact Valve";
+	_g.h[47] = "Would meet with Valve";
 	this.demographLabels = _g;
-	this.demographicQuestions = [null,0,42,43,44,45,46,47];
+	this.demographicQuestions = [null,0,42,43,44,45,46];
 	this.maxRadius = 12;
 	this.minRadius = 4;
 	this.padding = 6;
@@ -34,7 +34,9 @@ var AgreeOrDisagree = function(environment) {
 	environment.container.innerHTML = "<div id=\"ui-container\">\n\t\t\t<div id=\"header\">\n\t\t\t\t<h1 id=\"title\"></h1>\n\t\t\t\t<div id=\"settings\">\n\t\t\t\t\t<div>\n\t\t\t\t\t\t<select id=\"demograph-select\">\n\t\t\t\t\t\t</select>\n\t\t\t\t\t</div>\n\t\t\t\t\t<div>\n\t\t\t\t\t\t<label for=\"radius-toggle\" title=\"If a respondant rated a question as important, we will make their circle bigger\">\n\t\t\t\t\t\t\tShow loud voices\n\t\t\t\t\t\t\t<input type=\"checkbox\" id=\"radius-toggle\" checked />\n\t\t\t\t\t\t</label>\n\t\t\t\t\t</div>\n\t\t\t\t</div>\n\t\t\t</div>\n\t\t\t<div id=\"d3-container\"></div>\n\t\t\t<div id=\"question-nav\">\n\t\t\t\t<a href=\"#\" id=\"previous-btn\"><i class=\"fa fa-chevron-left\"></i><span class=\"sr-only\">Previous Question</span></a>\n\t\t\t\t<h2 id=\"question-label\"></h2>\n\t\t\t\t<a href=\"#\" id=\"next-btn\"><i class=\"fa fa-chevron-right\"></i><span class=\"sr-only\">Next Question</span></a>\n\t\t\t</div>\n\t\t</div>";
 	this.labels = { title : window.document.getElementById("title"), question : window.document.getElementById("question-label"), demograph : window.document.getElementById("demograph-select"), radius : window.document.getElementById("radius-toggle")};
 	this.environment = environment;
-	this.color = ($_=js_d3_D3.scale.category10().domain(js_d3_D3.range(1)),$bind($_,$_));
+	this.color = function(_) {
+		return "white";
+	};
 };
 AgreeOrDisagree.__name__ = true;
 AgreeOrDisagree.__interfaces__ = [enthraler_HaxeTemplate];
@@ -59,7 +61,7 @@ AgreeOrDisagree.prototype = {
 			if(i == null) {
 				return "<option value=\"\">Do not highlight demographics</option>";
 			}
-			return "<option value=\"" + i + "\">" + _gthis.demographLabels.h[i].label + "</option>";
+			return "<option value=\"" + i + "\">" + _gthis.demographLabels.h[i] + "</option>";
 		});
 		this.labels.demograph.innerHTML = selectOptions.join("");
 		this.labels.demograph.addEventListener("change",function() {
@@ -77,7 +79,7 @@ AgreeOrDisagree.prototype = {
 		this.nodes = js_d3_D3.range(this.get_numberOfNodes()).map(function(index) {
 			var i = Math.floor(Math.random() * _gthis.numberOfClusters);
 			var v = (i + 1) / _gthis.numberOfClusters * -Math.log(Math.random());
-			return { responseIndex : index, radius : _gthis.maxRadius, color : "" + _gthis.color(i), tooltip : "", cx : _gthis.xScale(i), cy : _gthis.height / 2};
+			return { responseIndex : index, radius : _gthis.maxRadius, color : _gthis.color(""), tooltip : "", cx : _gthis.xScale(i), cy : _gthis.height / 2};
 		});
 		this.force = js_d3_D3.layout.force().nodes(this.nodes).size([this.width,this.height]);
 		this.svg = js_d3_D3.select("#d3-container").append("svg").attr("width",this.width).attr("height",this.height).attr("viewBox",[0,0,this.width,this.height].join(","));
@@ -163,15 +165,34 @@ AgreeOrDisagree.prototype = {
 	,setDemographicQuestion: function(questionNumber) {
 		this.demographicQuestionIndex = questionNumber;
 		var numGroups = 1;
+		var groupsInQuestion = [""];
+		var colors = null;
 		if(questionNumber != null) {
-			var groupsInQuestion = this.getGroupsInQuestion(questionNumber);
+			groupsInQuestion = this.getGroupsInQuestion(questionNumber);
 			numGroups = groupsInQuestion.length;
+			var _g = this.authorData.questions[questionNumber].type;
+			if(_g[1] == 0) {
+				var colorsForGroup = _g[4];
+				var defaultGroup = _g[3];
+				var groups = _g[2];
+				colors = colorsForGroup;
+			} else {
+				colors = null;
+			}
 		}
 		this.labels.demograph.value = questionNumber != null ? "" + questionNumber : "";
-		if(this.demographLabels.h[questionNumber] == null || !this.demographLabels.h[questionNumber].useLinearColours) {
-			this.color = ($_=js_d3_D3.scale.category10().domain(js_d3_D3.range(0,numGroups - 1)),$bind($_,$_));
+		if(this.demographLabels.h[questionNumber] == null || colors == null) {
+			this.color = function(_) {
+				return "#1F77B4";
+			};
 		} else {
-			this.color = ($_=js_d3_D3.scale.linear().domain([0,numGroups]).range(["rgb(255,140,140)","rgb(255,0,0)"]),$bind($_,$_));
+			this.color = function(demographicValue) {
+				if(__map_reserved[demographicValue] != null ? colors.existsReserved(demographicValue) : colors.h.hasOwnProperty(demographicValue)) {
+					return __map_reserved[demographicValue] != null ? colors.getReserved(demographicValue) : colors.h[demographicValue];
+				} else {
+					return "white";
+				}
+			};
 		}
 		this.reRender();
 	}
@@ -295,15 +316,14 @@ AgreeOrDisagree.prototype = {
 			var groupIndex = allGroups.indexOf(response3.group);
 			var demographText = respondant[_gthis.demographicQuestionIndex];
 			var groupsInDemographicQuestion = _gthis.getGroupsInQuestion(_gthis.demographicQuestionIndex);
-			var demographIndex = groupsInDemographicQuestion.indexOf(demographText);
 			node.cx = _gthis.xScale(groupIndex);
 			node.radius = _gthis.allowRadiusScaling ? response3.radius / 3 * _gthis.maxRadius : _gthis.maxRadius / 3;
 			node.tooltip = responseText;
 			if(demographText != null) {
-				var demographQuestion = _gthis.demographLabels.h[_gthis.demographicQuestionIndex].label;
+				var demographQuestion = _gthis.demographLabels.h[_gthis.demographicQuestionIndex];
 				node.tooltip += " [" + demographQuestion + ": " + demographText + "]";
 			}
-			node.color = "" + _gthis.color(demographIndex);
+			node.color = _gthis.color(demographText);
 			return node;
 		});
 	}
@@ -482,6 +502,32 @@ var haxe_ds_ObjectMap = function() {
 };
 haxe_ds_ObjectMap.__name__ = true;
 haxe_ds_ObjectMap.__interfaces__ = [haxe_IMap];
+var haxe_ds_StringMap = function() {
+	this.h = { };
+};
+haxe_ds_StringMap.__name__ = true;
+haxe_ds_StringMap.__interfaces__ = [haxe_IMap];
+haxe_ds_StringMap.prototype = {
+	setReserved: function(key,value) {
+		if(this.rh == null) {
+			this.rh = { };
+		}
+		this.rh["$" + key] = value;
+	}
+	,getReserved: function(key) {
+		if(this.rh == null) {
+			return null;
+		} else {
+			return this.rh["$" + key];
+		}
+	}
+	,existsReserved: function(key) {
+		if(this.rh == null) {
+			return false;
+		}
+		return this.rh.hasOwnProperty("$" + key);
+	}
+};
 var js__$Boot_HaxeError = function(val) {
 	Error.call(this);
 	this.val = val;
@@ -1337,7 +1383,7 @@ tink_json_Parser0.prototype = $extend(tink_json_BasicParser.prototype,{
 			var __ret = this.parse4();
 			var o = __ret.GroupedAnswer;
 			if(o != null) {
-				return QuestionType.GroupedAnswer(o.groups,o.defaultGroup);
+				return QuestionType.GroupedAnswer(o.groups,o.defaultGroup,o.colors);
 			} else {
 				var o1 = __ret.GroupedWeightedAnswer;
 				if(o1 != null) {
@@ -1544,6 +1590,7 @@ tink_json_Parser0.prototype = $extend(tink_json_BasicParser.prototype,{
 	}
 	,parse5: function() {
 		var _gthis = this;
+		var v_colors = null;
 		var v_defaultGroup = null;
 		var v_groups = null;
 		var __start__ = this.pos;
@@ -1664,6 +1711,117 @@ tink_json_Parser0.prototype = $extend(tink_json_BasicParser.prototype,{
 					} else {
 						v_defaultGroup = tink_json__$Parser_JsonString_$Impl_$.toString(this.parseString());
 					}
+				} else if("colors".length == __name__.max - __name__.min && __name__.source.substring(__name__.min,__name__.max) == "colors") {
+					while(this.pos < this.max && this.source.charCodeAt(this.pos) < 33) this.pos++;
+					var v_colors1;
+					if(this.max > this.pos + 3 && this.source.charCodeAt(this.pos) == 110 && this.source.charCodeAt(this.pos + 1) == 117 && this.source.charCodeAt(this.pos + 2) == 108 && this.source.charCodeAt(this.pos + 3) == 108) {
+						this.pos += 4;
+						while(this.pos < this.max && this.source.charCodeAt(this.pos) < 33) this.pos++;
+						v_colors1 = true;
+					} else {
+						v_colors1 = false;
+					}
+					if(v_colors1) {
+						v_colors = null;
+					} else {
+						while(this.pos < this.max && this.source.charCodeAt(this.pos) < 33) this.pos++;
+						var v_colors2;
+						if(this.max > this.pos && this.source.charCodeAt(this.pos) == 91) {
+							this.pos += 1;
+							while(this.pos < this.max && this.source.charCodeAt(this.pos) < 33) this.pos++;
+							v_colors2 = true;
+						} else {
+							v_colors2 = false;
+						}
+						if(!v_colors2) {
+							this.die("Expected [");
+						}
+						var __ret1 = new haxe_ds_StringMap();
+						while(this.pos < this.max && this.source.charCodeAt(this.pos) < 33) this.pos++;
+						var v_colors3;
+						if(this.max > this.pos && this.source.charCodeAt(this.pos) == 93) {
+							this.pos += 1;
+							while(this.pos < this.max && this.source.charCodeAt(this.pos) < 33) this.pos++;
+							v_colors3 = true;
+						} else {
+							v_colors3 = false;
+						}
+						if(!v_colors3) {
+							while(true) {
+								while(this.pos < this.max && this.source.charCodeAt(this.pos) < 33) this.pos++;
+								var v_colors4;
+								if(this.max > this.pos && this.source.charCodeAt(this.pos) == 91) {
+									this.pos += 1;
+									while(this.pos < this.max && this.source.charCodeAt(this.pos) < 33) this.pos++;
+									v_colors4 = true;
+								} else {
+									v_colors4 = false;
+								}
+								if(!v_colors4) {
+									this.die("Expected [");
+								}
+								var k = tink_json__$Parser_JsonString_$Impl_$.toString(this.parseString());
+								var e;
+								while(this.pos < this.max && this.source.charCodeAt(this.pos) < 33) this.pos++;
+								var e1;
+								if(this.max > this.pos && this.source.charCodeAt(this.pos) == 44) {
+									this.pos += 1;
+									while(this.pos < this.max && this.source.charCodeAt(this.pos) < 33) this.pos++;
+									e1 = true;
+								} else {
+									e1 = false;
+								}
+								if(!e1) {
+									e = this.die("Expected ,");
+								} else {
+									e = null;
+								}
+								var v = tink_json__$Parser_JsonString_$Impl_$.toString(this.parseString());
+								if(__map_reserved[k] != null) {
+									__ret1.setReserved(k,v);
+								} else {
+									__ret1.h[k] = v;
+								}
+								while(this.pos < this.max && this.source.charCodeAt(this.pos) < 33) this.pos++;
+								var v_colors5;
+								if(this.max > this.pos && this.source.charCodeAt(this.pos) == 93) {
+									this.pos += 1;
+									while(this.pos < this.max && this.source.charCodeAt(this.pos) < 33) this.pos++;
+									v_colors5 = true;
+								} else {
+									v_colors5 = false;
+								}
+								if(!v_colors5) {
+									this.die("Expected ]");
+								}
+								while(this.pos < this.max && this.source.charCodeAt(this.pos) < 33) this.pos++;
+								var v_colors6;
+								if(this.max > this.pos && this.source.charCodeAt(this.pos) == 44) {
+									this.pos += 1;
+									while(this.pos < this.max && this.source.charCodeAt(this.pos) < 33) this.pos++;
+									v_colors6 = true;
+								} else {
+									v_colors6 = false;
+								}
+								if(!v_colors6) {
+									break;
+								}
+							}
+							while(this.pos < this.max && this.source.charCodeAt(this.pos) < 33) this.pos++;
+							var v_colors7;
+							if(this.max > this.pos && this.source.charCodeAt(this.pos) == 93) {
+								this.pos += 1;
+								while(this.pos < this.max && this.source.charCodeAt(this.pos) < 33) this.pos++;
+								v_colors7 = true;
+							} else {
+								v_colors7 = false;
+							}
+							if(!v_colors7) {
+								this.die("Expected ]");
+							}
+						}
+						v_colors = __ret1;
+					}
 				} else {
 					this.skipValue();
 				}
@@ -1696,7 +1854,7 @@ tink_json_Parser0.prototype = $extend(tink_json_BasicParser.prototype,{
 		var __missing__ = function(field) {
 			return _gthis.die("missing field \"" + field + "\"",__start__);
 		};
-		return { defaultGroup : v_defaultGroup, groups : v_groups};
+		return { colors : v_colors, defaultGroup : v_defaultGroup, groups : v_groups};
 	}
 	,parse6: function() {
 		var _gthis = this;
@@ -1850,6 +2008,7 @@ $global.define(["cdnjs/d3/3.5.17/d3.min","cdnjs/hammer.js/2.0.8/hammer.min","css
 });
 String.__name__ = true;
 Array.__name__ = true;
+var __map_reserved = {};
 })(typeof window != "undefined" ? window : typeof global != "undefined" ? global : typeof self != "undefined" ? self : this);
 
 //# sourceMappingURL=agreeOrDisagree.js.map

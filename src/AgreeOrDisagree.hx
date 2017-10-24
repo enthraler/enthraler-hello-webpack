@@ -18,7 +18,7 @@ typedef Question = {
 }
 
 enum QuestionType {
-    GroupedAnswer(?groups: Array<String>, ?defaultGroup: String);
+    GroupedAnswer(?groups: Array<String>, ?defaultGroup: String, ?colors: Map<String, String>);
     GroupedWeightedAnswer(groups: ResponseGroups);
     FreeText;
 }
@@ -105,11 +105,11 @@ class AgreeOrDisagree implements HaxeTemplate<AuthorData> {
 	var nodes: Array<CircleNode>;
 	var groupLabels: Selection;
 	var xScale: Ordinal;
-	var color: ScaleFn;
+	var color: String->String;
 	var force: Force; // See https://github.com/d3/d3-3.x-api-reference/blob/master/Force-Layout.md
 
 	// Steam Survey specific stuff
-	var demographicQuestions = [null, 0, 42, 43, 44, 45, 46, 47];
+	var demographicQuestions = [null, 0, 42, 43, 44, 45, 46];
 
 	public function new(environment:Environment) {
 		environment.container.innerHTML = '<div id="ui-container">
@@ -143,7 +143,7 @@ class AgreeOrDisagree implements HaxeTemplate<AuthorData> {
 		};
 
 		this.environment = environment;
-		this.color = D3.scale.category10().domain(D3.range(1)).call;
+		this.color = function (_) return 'white';
 	}
 
 	public function render(plainJsonData: {}) {
@@ -163,13 +163,13 @@ class AgreeOrDisagree implements HaxeTemplate<AuthorData> {
 
 	// TODO: make this configurable in authordata
 	var demographLabels = [
-			0 => {label: "Community", useLinearColours: false},
-			42 => {label: "# of games", useLinearColours: true},
-			43 => {label: "Revenue", useLinearColours: true},
-			44 => {label: "# of employees", useLinearColours: true},
-			45 => {label: "First release", useLinearColours: true},
-			46 => {label: "Can contact Valve", useLinearColours: false},
-			47 => {label: "Would meet with Valve", useLinearColours: false}
+			0 => "Community",
+			42 => "# of games",
+			43 => "Revenue",
+			44 => "# of employees",
+			45 => "First release",
+			46 => "Can contact Valve",
+			47 => "Would meet with Valve"
 	];
 
 	function setupDemographSelectBox() {
@@ -177,7 +177,7 @@ class AgreeOrDisagree implements HaxeTemplate<AuthorData> {
 			if (i == null) {
 				return '<option value="">Do not highlight demographics</option>';
 			}
-			return '<option value="${i}">${demographLabels[i].label}</option>';
+			return '<option value="${i}">${demographLabels[i]}</option>';
 		});
 		this.labels.demograph.innerHTML = selectOptions.join("");
 
@@ -204,7 +204,7 @@ class AgreeOrDisagree implements HaxeTemplate<AuthorData> {
 			return {
 				responseIndex: index,
 				radius: maxRadius,
-				color: ''+color(i),
+				color: color(''),
 				tooltip: '',
 				cx: xScale.call(i),
 				cy: height / 2
@@ -316,22 +316,27 @@ class AgreeOrDisagree implements HaxeTemplate<AuthorData> {
 
 	function setDemographicQuestion(questionNumber: Null<Int>) {
 		this.demographicQuestionIndex = questionNumber;
-		var numGroups = 1;
+		var numGroups = 1,
+			groupsInQuestion = [''],
+			colors = null;
 		if (questionNumber != null) {
-			var groupsInQuestion = getGroupsInQuestion(questionNumber);
+			groupsInQuestion = getGroupsInQuestion(questionNumber);
 			numGroups = groupsInQuestion.length;
+			colors = switch authorData.questions[questionNumber].type {
+				// For now, we're only allowing GroupedAnswer questions to be used as demographics.
+				case GroupedAnswer(groups, defaultGroup, colorsForGroup): colorsForGroup;
+				case _: null;
+			}
 		}
 		this.labels.demograph.value = (questionNumber!=null) ? ''+questionNumber : '';
-		// TODO: make these colour scales configurable in the JSON.
-		if (this.demographLabels[questionNumber] == null || !this.demographLabels[questionNumber].useLinearColours) {
-			// Use distinct colours for things that aren't a linear scale.
-			this.color = D3.scale.category10().domain(D3.range(0, numGroups - 1)).call;
+		if (this.demographLabels[questionNumber] == null || colors == null) {
+			// No colours were specified, use a simple neutral color
+			this.color = function (_) return "#1F77B4";
 		} else {
-			// Use a red scale for groups that represent a linear progression.
-			this.color = D3.scale
-				.linear()
-				.domain([0, numGroups])
-				.range(['rgb(255,140,140)', 'rgb(255,0,0)']).call;
+			// Use the color specified in the question, or white if their demographic information was ommitted.
+			this.color = function (demographicValue) {
+				return colors.exists(demographicValue) ? colors[demographicValue] : 'white';
+			}
 		}
 		reRender();
 	}
@@ -352,7 +357,7 @@ class AgreeOrDisagree implements HaxeTemplate<AuthorData> {
 
 		if (question != null) {
 			switch question.type {
-				case GroupedAnswer(groups, defaultGroup):
+				case GroupedAnswer(groups, defaultGroup, _):
 					if (groups != null) {
 						if (defaultGroup != null) {
 							addGroup(defaultGroup);
@@ -387,7 +392,7 @@ class AgreeOrDisagree implements HaxeTemplate<AuthorData> {
 
 		if (question != null) {
 			switch question.type {
-				case GroupedAnswer(groups, defaultGroup):
+				case GroupedAnswer(groups, defaultGroup, _):
 					if (groups != null) {
 						getResponse = function (response: String)
 							return
@@ -429,8 +434,7 @@ class AgreeOrDisagree implements HaxeTemplate<AuthorData> {
 			var response = getResponse(responseText),
 				groupIndex = allGroups.indexOf(response.group),
 				demographText = respondant[demographicQuestionIndex],
-				groupsInDemographicQuestion = getGroupsInQuestion(demographicQuestionIndex),
-				demographIndex = groupsInDemographicQuestion.indexOf(demographText);
+				groupsInDemographicQuestion = getGroupsInQuestion(demographicQuestionIndex);
 
 			node.cx = xScale.call(groupIndex);
 			// TODO: figure out a way to do radius as a ratio of the maximum value.
@@ -439,10 +443,10 @@ class AgreeOrDisagree implements HaxeTemplate<AuthorData> {
 				: maxRadius/3;
 			node.tooltip = responseText;
 			if (demographText != null) {
-				var demographQuestion = demographLabels[demographicQuestionIndex].label;
+				var demographQuestion = demographLabels[demographicQuestionIndex];
 				node.tooltip += ' [$demographQuestion: $demographText]';
 			}
-			node.color = ''+color(demographIndex);
+			node.color = color(demographText);
 			return node;
 		});
 	}

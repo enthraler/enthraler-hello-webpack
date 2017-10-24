@@ -104,7 +104,7 @@ class AgreeOrDisagree implements HaxeTemplate<AuthorData> {
 	var circle: Selection;
 	var nodes: Array<CircleNode>;
 	var xScale: Ordinal;
-	var color: Ordinal;
+	var color: ScaleFn;
 	var force: Force; // See https://github.com/d3/d3-3.x-api-reference/blob/master/Force-Layout.md
 
 	// Steam Survey specific stuff
@@ -140,7 +140,7 @@ class AgreeOrDisagree implements HaxeTemplate<AuthorData> {
 		};
 
 		this.environment = environment;
-		this.color = D3.scale.category10().domain(D3.range(1));
+		this.color = D3.scale.category10().domain(D3.range(1)).call;
 	}
 
 	public function render(plainJsonData: {}) {
@@ -158,22 +158,23 @@ class AgreeOrDisagree implements HaxeTemplate<AuthorData> {
 		environment.requestHeightChange();
 	}
 
+	// TODO: make this configurable in authordata
+	var demographLabels = [
+			0 => {label: "Community", useLinearColours: false},
+			42 => {label: "# of games", useLinearColours: true},
+			43 => {label: "Revenue", useLinearColours: true},
+			44 => {label: "# of employees", useLinearColours: true},
+			45 => {label: "First release", useLinearColours: true},
+			46 => {label: "Can contact Valve", useLinearColours: false},
+			47 => {label: "Would meet with Valve", useLinearColours: false}
+	];
+
 	function setupDemographSelectBox() {
-		// TODO: make this configurable in authordata
-		var demographLabels = [
-			 0 => "Community",
-			 42 => "# of games",
-			 43 => "Revenue",
-			 44 => "# of employees",
-			 45 => "First release",
-			 46 => "Can contact Valve",
-			 47 => "Would meet with Valve"
-		];
 		var selectOptions = demographicQuestions.map(function (i) {
 			if (i == null) {
 				return '<option value="">Do not highlight demographics</option>';
 			}
-			return '<option value="${i}">${demographLabels[i]}</option>';
+			return '<option value="${i}">${demographLabels[i].label}</option>';
 		});
 		this.labels.demograph.innerHTML = selectOptions.join("");
 
@@ -200,7 +201,7 @@ class AgreeOrDisagree implements HaxeTemplate<AuthorData> {
 			return {
 				responseIndex: index,
 				radius: maxRadius,
-				color: ''+color.call(i),
+				color: ''+color(i),
 				tooltip: '',
 				cx: xScale.call(i),
 				cy: height / 2
@@ -321,7 +322,17 @@ class AgreeOrDisagree implements HaxeTemplate<AuthorData> {
 			numGroups = 1;
 		}
 		this.labels.demograph.value = (questionNumber!=null) ? ''+questionNumber : '';
-		this.color = D3.scale.category10().domain(D3.range(0, numGroups - 1));
+		// TODO: make these colour scales configurable in the JSON.
+		if (this.demographLabels[questionNumber] == null || !this.demographLabels[questionNumber].useLinearColours) {
+			// Use distinct colours for things that aren't a linear scale.
+			this.color = D3.scale.category10().domain(D3.range(0, numGroups - 1)).call;
+		} else {
+			// Use a red scale for groups that represent a linear progression.
+			this.color = D3.scale
+				.linear()
+				.domain([0, numGroups])
+				.range(['rgb(255,140,140)', 'rgb(255,0,0)']).call;
+		}
 		reRender();
 	}
 
@@ -429,7 +440,7 @@ class AgreeOrDisagree implements HaxeTemplate<AuthorData> {
 			if (demographText != null) {
 				node.tooltip += ' [$demographText]';
 			}
-			node.color = ''+color.call(demographIndex);
+			node.color = ''+color(demographIndex);
 			return node;
 		});
 	}

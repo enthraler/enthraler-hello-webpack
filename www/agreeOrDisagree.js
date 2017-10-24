@@ -16,6 +16,15 @@ QuestionType.FreeText.__enum__ = QuestionType;
 var enthraler_HaxeTemplate = function() { };
 enthraler_HaxeTemplate.__name__ = true;
 var AgreeOrDisagree = function(environment) {
+	var _g = new haxe_ds_IntMap();
+	_g.h[0] = { label : "Community", useLinearColours : false};
+	_g.h[42] = { label : "# of games", useLinearColours : true};
+	_g.h[43] = { label : "Revenue", useLinearColours : true};
+	_g.h[44] = { label : "# of employees", useLinearColours : true};
+	_g.h[45] = { label : "First release", useLinearColours : true};
+	_g.h[46] = { label : "Can contact Valve", useLinearColours : false};
+	_g.h[47] = { label : "Would meet with Valve", useLinearColours : false};
+	this.demographLabels = _g;
 	this.demographicQuestions = [null,0,42,43,44,45,46,47];
 	this.maxRadius = 12;
 	this.minRadius = 4;
@@ -25,7 +34,7 @@ var AgreeOrDisagree = function(environment) {
 	environment.container.innerHTML = "<div id=\"ui-container\">\n\t\t\t<h1 id=\"title\"></h1>\n\t\t\t<div id=\"settings\">\n\t\t\t\t<div>\n\t\t\t\t\t<select id=\"demograph-select\">\n\t\t\t\t\t</select>\n\t\t\t\t</div>\n\t\t\t\t<div>\n\t\t\t\t\t<label for=\"radius-toggle\" title=\"If a respondant rated a question as important, we will make their circle bigger\">\n\t\t\t\t\t\tShow loud voices\n\t\t\t\t\t\t<input type=\"checkbox\" id=\"radius-toggle\" checked />\n\t\t\t\t\t</label>\n\t\t\t\t</div>\n\t\t\t</div>\n\t\t\t<div id=\"d3-container\"></div>\n\t\t\t<div id=\"question-nav\">\n\t\t\t\t<a href=\"#\" id=\"previous-btn\"><i class=\"fa fa-chevron-left\"></i><span class=\"sr-only\">Previous Question</span></a>\n\t\t\t\t<h2 id=\"question-label\"></h2>\n\t\t\t\t<a href=\"#\" id=\"next-btn\"><i class=\"fa fa-chevron-right\"></i><span class=\"sr-only\">Next Question</span></a>\n\t\t\t</div>\n\t\t</div>";
 	this.labels = { title : window.document.getElementById("title"), question : window.document.getElementById("question-label"), demograph : window.document.getElementById("demograph-select"), radius : window.document.getElementById("radius-toggle")};
 	this.environment = environment;
-	this.color = js_d3_D3.scale.category10().domain(js_d3_D3.range(1));
+	this.color = ($_=js_d3_D3.scale.category10().domain(js_d3_D3.range(1)),$bind($_,$_));
 };
 AgreeOrDisagree.__name__ = true;
 AgreeOrDisagree.__interfaces__ = [enthraler_HaxeTemplate];
@@ -46,20 +55,11 @@ AgreeOrDisagree.prototype = {
 	}
 	,setupDemographSelectBox: function() {
 		var _gthis = this;
-		var _g = new haxe_ds_IntMap();
-		_g.h[0] = "Community";
-		_g.h[42] = "# of games";
-		_g.h[43] = "Revenue";
-		_g.h[44] = "# of employees";
-		_g.h[45] = "First release";
-		_g.h[46] = "Can contact Valve";
-		_g.h[47] = "Would meet with Valve";
-		var demographLabels = _g;
 		var selectOptions = this.demographicQuestions.map(function(i) {
 			if(i == null) {
 				return "<option value=\"\">Do not highlight demographics</option>";
 			}
-			return "<option value=\"" + i + "\">" + demographLabels.h[i] + "</option>";
+			return "<option value=\"" + i + "\">" + _gthis.demographLabels.h[i].label + "</option>";
 		});
 		this.labels.demograph.innerHTML = selectOptions.join("");
 		this.labels.demograph.addEventListener("change",function() {
@@ -171,7 +171,11 @@ AgreeOrDisagree.prototype = {
 			numGroups = 1;
 		}
 		this.labels.demograph.value = questionNumber != null ? "" + questionNumber : "";
-		this.color = js_d3_D3.scale.category10().domain(js_d3_D3.range(0,numGroups - 1));
+		if(this.demographLabels.h[questionNumber] == null || !this.demographLabels.h[questionNumber].useLinearColours) {
+			this.color = ($_=js_d3_D3.scale.category10().domain(js_d3_D3.range(0,numGroups - 1)),$bind($_,$_));
+		} else {
+			this.color = ($_=js_d3_D3.scale.linear().domain([0,numGroups]).range(["rgb(255,140,140)","rgb(255,0,0)"]),$bind($_,$_));
+		}
 		this.reRender();
 	}
 	,reRender: function() {

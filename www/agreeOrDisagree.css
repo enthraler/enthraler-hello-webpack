@@ -30,8 +30,16 @@ body {
 	overflow: visible;
 }
 
+#header {
+	display: flex;
+	flex-direction: row;
+	justify-content: space-between;
+	padding: 5px;
+}
+
 #title {
 	font-size: 14px;
+	line-height: 18px;
 	margin: 0;
 }
 
@@ -72,8 +80,14 @@ body {
 
 #settings {
 	display: flex;
-	flex-direction: row;
-	justify-content: space-between;
+	flex-direction: column;
+	justify-content: flex-start;
+	font-size: 10px;
+	text-align: right;
+}
+
+#settings * {
+	margin-bottom: 5px;
 }
 
 /* Styling for the group labels */

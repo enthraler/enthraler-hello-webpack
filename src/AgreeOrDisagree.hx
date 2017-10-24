@@ -113,17 +113,19 @@ class AgreeOrDisagree implements HaxeTemplate<AuthorData> {
 
 	public function new(environment:Environment) {
 		environment.container.innerHTML = '<div id="ui-container">
-			<h1 id="title"></h1>
-			<div id="settings">
-				<div>
-					<select id="demograph-select">
-					</select>
-				</div>
-				<div>
-					<label for="radius-toggle" title="If a respondant rated a question as important, we will make their circle bigger">
-						Show loud voices
-						<input type="checkbox" id="radius-toggle" checked />
-					</label>
+			<div id="header">
+				<h1 id="title"></h1>
+				<div id="settings">
+					<div>
+						<select id="demograph-select">
+						</select>
+					</div>
+					<div>
+						<label for="radius-toggle" title="If a respondant rated a question as important, we will make their circle bigger">
+							Show loud voices
+							<input type="checkbox" id="radius-toggle" checked />
+						</label>
+					</div>
 				</div>
 			</div>
 			<div id="d3-container"></div>

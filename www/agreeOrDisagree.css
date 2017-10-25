@@ -18,7 +18,7 @@ body {
 /* Lay out the labels in the UI container */
 
 #d3-container {
-	flex: 4 300px;
+	flex: 1 300px;
 	display: flex;
 	flex-direction: column;
 	justify-content: center;

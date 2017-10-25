@@ -136,7 +136,7 @@ AgreeOrDisagree.prototype = {
 				break;
 			default:
 				var other = _g2;
-				haxe_Log.trace("Keycode " + other + " is not assigned to any action",{ fileName : "AgreeOrDisagree.hx", lineNumber : 278, className : "AgreeOrDisagree", methodName : "drawTheDots"});
+				console.log("Keycode " + other + " is not assigned to any action");
 			}
 		});
 		window.document.getElementById("previous-btn").addEventListener("click",prevQuestion1);
@@ -150,7 +150,6 @@ AgreeOrDisagree.prototype = {
 		this.environment.requestHeightChange();
 	}
 	,showQuestion: function(questionIndex) {
-		haxe_Log.trace("question",{ fileName : "AgreeOrDisagree.hx", lineNumber : 303, className : "AgreeOrDisagree", methodName : "showQuestion", customParams : [questionIndex]});
 		this.questionIndex = questionIndex;
 		var question = this.authorData.questions[questionIndex];
 		var label = questionIndex != null ? question.question : "Survey";
@@ -294,7 +293,7 @@ AgreeOrDisagree.prototype = {
 				};
 				break;
 			case 2:
-				haxe_Log.trace("not handling free text yet",{ fileName : "AgreeOrDisagree.hx", lineNumber : 414, className : "AgreeOrDisagree", methodName : "updateNodes"});
+				console.log("not handling free text yet");
 				return;
 			}
 		} else {
@@ -314,7 +313,6 @@ AgreeOrDisagree.prototype = {
 			var response3 = getResponse(responseText);
 			var groupIndex = allGroups.indexOf(response3.group);
 			var demographText = respondant[_gthis.demographicQuestionIndex];
-			var groupsInDemographicQuestion = _gthis.getGroupsInQuestion(_gthis.demographicQuestionIndex);
 			node.cx = _gthis.xScale(groupIndex);
 			node.radius = _gthis.allowRadiusScaling ? response3.radius / 3 * _gthis.maxRadius : _gthis.maxRadius / 3;
 			node.tooltip = responseText != null ? responseText : "";
@@ -491,11 +489,6 @@ haxe_StackItem.Method = function(classname,method) { var $x = ["Method",3,classn
 haxe_StackItem.LocalFunction = function(v) { var $x = ["LocalFunction",4,v]; $x.__enum__ = haxe_StackItem; $x.toString = $estr; return $x; };
 var haxe_IMap = function() { };
 haxe_IMap.__name__ = true;
-var haxe_Log = function() { };
-haxe_Log.__name__ = true;
-haxe_Log.trace = function(v,infos) {
-	js_Boot.__trace(v,infos);
-};
 var haxe_ds_IntMap = function() {
 	this.h = { };
 };
@@ -553,35 +546,6 @@ js__$Boot_HaxeError.prototype = $extend(Error.prototype,{
 });
 var js_Boot = function() { };
 js_Boot.__name__ = true;
-js_Boot.__unhtml = function(s) {
-	return s.split("&").join("&amp;").split("<").join("&lt;").split(">").join("&gt;");
-};
-js_Boot.__trace = function(v,i) {
-	var msg = i != null ? i.fileName + ":" + i.lineNumber + ": " : "";
-	msg += js_Boot.__string_rec(v,"");
-	if(i != null && i.customParams != null) {
-		var _g = 0;
-		var _g1 = i.customParams;
-		while(_g < _g1.length) {
-			var v1 = _g1[_g];
-			++_g;
-			msg += "," + js_Boot.__string_rec(v1,"");
-		}
-	}
-	var d;
-	var tmp;
-	if(typeof(document) != "undefined") {
-		d = document.getElementById("haxe:trace");
-		tmp = d != null;
-	} else {
-		tmp = false;
-	}
-	if(tmp) {
-		d.innerHTML += js_Boot.__unhtml(msg) + "<br/>";
-	} else if(typeof console != "undefined" && console.log != null) {
-		console.log(msg);
-	}
-};
 js_Boot.__string_rec = function(o,s) {
 	if(o == null) {
 		return "null";
@@ -1431,7 +1395,7 @@ tink_json_Parser0.prototype = $extend(tink_json_BasicParser.prototype,{
 		var _gthis = this;
 		var v_group = null;
 		var hasv_group = false;
-		var v_radius = 0;
+		var v_radius = .0;
 		var hasv_radius = false;
 		var v_value = null;
 		var hasv_value = false;
@@ -1477,7 +1441,7 @@ tink_json_Parser0.prototype = $extend(tink_json_BasicParser.prototype,{
 					hasv_value = true;
 				} else if("radius".length == __name__.max - __name__.min && __name__.source.substring(__name__.min,__name__.max) == "radius") {
 					var this1 = this.parseNumber();
-					v_radius = Std.parseInt(this1.source.substring(this1.min,this1.max));
+					v_radius = parseFloat(this1.source.substring(this1.min,this1.max));
 					hasv_radius = true;
 				} else if("group".length == __name__.max - __name__.min && __name__.source.substring(__name__.min,__name__.max) == "group") {
 					v_group = tink_json__$Parser_JsonString_$Impl_$.toString(this.parseString());

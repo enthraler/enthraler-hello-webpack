@@ -10,7 +10,7 @@ import tink.Json;
 
 typedef CsvData = Array<Array<String>>;
 
-typedef ResponseGroups = Array<{value: String, group: String, radius: Int}>
+typedef ResponseGroups = Array<{value: String, group: String, radius: Float}>
 
 typedef Question = {
     question: String,
@@ -385,7 +385,7 @@ class AgreeOrDisagree implements HaxeTemplate<AuthorData> {
 
 	function updateNodes() {
 		var allGroups = getGroupsInQuestion(questionIndex),
-			getResponse:String->{group: String, radius: Int},
+			getResponse:String->{group: String, radius: Float},
 			question = this.authorData.questions[questionIndex];
 
 		if (question != null) {
@@ -431,8 +431,7 @@ class AgreeOrDisagree implements HaxeTemplate<AuthorData> {
 			}
 			var response = getResponse(responseText),
 				groupIndex = allGroups.indexOf(response.group),
-				demographText = respondant[demographicQuestionIndex],
-				groupsInDemographicQuestion = getGroupsInQuestion(demographicQuestionIndex);
+				demographText = respondant[demographicQuestionIndex];
 
 			node.cx = xScale.call(groupIndex);
 			// TODO: figure out a way to do radius as a ratio of the maximum value.

@@ -109,7 +109,7 @@ class AgreeOrDisagree implements HaxeTemplate<AuthorData> {
 	var force: Force; // See https://github.com/d3/d3-3.x-api-reference/blob/master/Force-Layout.md
 
 	// Steam Survey specific stuff
-	var demographicQuestions = [null, 0, 42, 43, 44, 45];
+	var demographicQuestions = [null, 0, 40, 41, 42, 43];
 
 	public function new(environment:Environment) {
 		environment.container.innerHTML = '<div id="ui-container">
@@ -164,12 +164,10 @@ class AgreeOrDisagree implements HaxeTemplate<AuthorData> {
 	// TODO: make this configurable in authordata
 	var demographLabels = [
 			0 => "Community",
-			42 => "# of games",
-			43 => "Revenue",
-			44 => "# of employees",
-			45 => "First release",
-			46 => "Can contact Valve",
-			47 => "Would meet with Valve"
+			40 => "# of games",
+			41 => "Revenue",
+			42 => "# of employees",
+			43 => "First release"
 	];
 
 	function setupDemographSelectBox() {
@@ -441,8 +439,8 @@ class AgreeOrDisagree implements HaxeTemplate<AuthorData> {
 			node.radius = this.allowRadiusScaling
 				? (response.radius / 3) * maxRadius
 				: maxRadius/3;
-			node.tooltip = responseText;
-			if (demographText != null) {
+			node.tooltip = responseText != null ? responseText : "";
+			if (demographText != null && demographText != '') {
 				var demographQuestion = demographLabels[demographicQuestionIndex];
 				node.tooltip += ' [$demographQuestion: $demographText]';
 			}

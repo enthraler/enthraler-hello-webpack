@@ -18,14 +18,12 @@ enthraler_HaxeTemplate.__name__ = true;
 var AgreeOrDisagree = function(environment) {
 	var _g = new haxe_ds_IntMap();
 	_g.h[0] = "Community";
-	_g.h[42] = "# of games";
-	_g.h[43] = "Revenue";
-	_g.h[44] = "# of employees";
-	_g.h[45] = "First release";
-	_g.h[46] = "Can contact Valve";
-	_g.h[47] = "Would meet with Valve";
+	_g.h[40] = "# of games";
+	_g.h[41] = "Revenue";
+	_g.h[42] = "# of employees";
+	_g.h[43] = "First release";
 	this.demographLabels = _g;
-	this.demographicQuestions = [null,0,42,43,44,45];
+	this.demographicQuestions = [null,0,40,41,42,43];
 	this.maxRadius = 12;
 	this.minRadius = 4;
 	this.padding = 6;
@@ -138,7 +136,7 @@ AgreeOrDisagree.prototype = {
 				break;
 			default:
 				var other = _g2;
-				console.log("Keycode " + other + " is not assigned to any action");
+				haxe_Log.trace("Keycode " + other + " is not assigned to any action",{ fileName : "AgreeOrDisagree.hx", lineNumber : 278, className : "AgreeOrDisagree", methodName : "drawTheDots"});
 			}
 		});
 		window.document.getElementById("previous-btn").addEventListener("click",prevQuestion1);
@@ -152,6 +150,7 @@ AgreeOrDisagree.prototype = {
 		this.environment.requestHeightChange();
 	}
 	,showQuestion: function(questionIndex) {
+		haxe_Log.trace("question",{ fileName : "AgreeOrDisagree.hx", lineNumber : 303, className : "AgreeOrDisagree", methodName : "showQuestion", customParams : [questionIndex]});
 		this.questionIndex = questionIndex;
 		var question = this.authorData.questions[questionIndex];
 		var label = questionIndex != null ? question.question : "Survey";
@@ -295,7 +294,7 @@ AgreeOrDisagree.prototype = {
 				};
 				break;
 			case 2:
-				console.log("not handling free text yet");
+				haxe_Log.trace("not handling free text yet",{ fileName : "AgreeOrDisagree.hx", lineNumber : 414, className : "AgreeOrDisagree", methodName : "updateNodes"});
 				return;
 			}
 		} else {
@@ -318,8 +317,8 @@ AgreeOrDisagree.prototype = {
 			var groupsInDemographicQuestion = _gthis.getGroupsInQuestion(_gthis.demographicQuestionIndex);
 			node.cx = _gthis.xScale(groupIndex);
 			node.radius = _gthis.allowRadiusScaling ? response3.radius / 3 * _gthis.maxRadius : _gthis.maxRadius / 3;
-			node.tooltip = responseText;
-			if(demographText != null) {
+			node.tooltip = responseText != null ? responseText : "";
+			if(demographText != null && demographText != "") {
 				var demographQuestion = _gthis.demographLabels.h[_gthis.demographicQuestionIndex];
 				node.tooltip += " [" + demographQuestion + ": " + demographText + "]";
 			}
@@ -492,6 +491,11 @@ haxe_StackItem.Method = function(classname,method) { var $x = ["Method",3,classn
 haxe_StackItem.LocalFunction = function(v) { var $x = ["LocalFunction",4,v]; $x.__enum__ = haxe_StackItem; $x.toString = $estr; return $x; };
 var haxe_IMap = function() { };
 haxe_IMap.__name__ = true;
+var haxe_Log = function() { };
+haxe_Log.__name__ = true;
+haxe_Log.trace = function(v,infos) {
+	js_Boot.__trace(v,infos);
+};
 var haxe_ds_IntMap = function() {
 	this.h = { };
 };
@@ -549,6 +553,35 @@ js__$Boot_HaxeError.prototype = $extend(Error.prototype,{
 });
 var js_Boot = function() { };
 js_Boot.__name__ = true;
+js_Boot.__unhtml = function(s) {
+	return s.split("&").join("&amp;").split("<").join("&lt;").split(">").join("&gt;");
+};
+js_Boot.__trace = function(v,i) {
+	var msg = i != null ? i.fileName + ":" + i.lineNumber + ": " : "";
+	msg += js_Boot.__string_rec(v,"");
+	if(i != null && i.customParams != null) {
+		var _g = 0;
+		var _g1 = i.customParams;
+		while(_g < _g1.length) {
+			var v1 = _g1[_g];
+			++_g;
+			msg += "," + js_Boot.__string_rec(v1,"");
+		}
+	}
+	var d;
+	var tmp;
+	if(typeof(document) != "undefined") {
+		d = document.getElementById("haxe:trace");
+		tmp = d != null;
+	} else {
+		tmp = false;
+	}
+	if(tmp) {
+		d.innerHTML += js_Boot.__unhtml(msg) + "<br/>";
+	} else if(typeof console != "undefined" && console.log != null) {
+		console.log(msg);
+	}
+};
 js_Boot.__string_rec = function(o,s) {
 	if(o == null) {
 		return "null";

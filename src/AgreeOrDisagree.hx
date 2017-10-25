@@ -109,7 +109,7 @@ class AgreeOrDisagree implements HaxeTemplate<AuthorData> {
 	var force: Force; // See https://github.com/d3/d3-3.x-api-reference/blob/master/Force-Layout.md
 
 	// Steam Survey specific stuff
-	var demographicQuestions = [null, 0, 42, 43, 44, 45, 46];
+	var demographicQuestions = [null, 0, 42, 43, 44, 45];
 
 	public function new(environment:Environment) {
 		environment.container.innerHTML = '<div id="ui-container">

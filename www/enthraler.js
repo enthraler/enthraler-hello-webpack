@@ -13,7 +13,7 @@ EnthralerFrame.main = function() {
 	EnthralerFrame.loadEnthralerComponent(params);
 	var forkLink = window.document.getElementById("enthraler-fork-link");
 	var hash = window.location.hash;
-	forkLink.href = "/editor.html" + hash;
+	// forkLink.href = "/editor.html" + hash;
 };
 EnthralerFrame.getParamsFromLocation = function() {
 	var hash = window.location.hash;

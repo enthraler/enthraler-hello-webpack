@@ -24,6 +24,7 @@ enum QuestionType {
 }
 
 typedef AuthorData = {
+	var title: String;
     /**
     The list of questions we are asking.
     See tink_json for how these are displayed in JSON form: https://github.com/haxetink/tink_json#enums
@@ -152,7 +153,7 @@ class AgreeOrDisagree implements HaxeTemplate<AuthorData> {
 		// We need to re-parse it if we want it to support our enums correctly.
 		var jsonStr = haxe.Json.stringify(plainJsonData);
 		this.authorData = tink.Json.parse(jsonStr);
-		labels.title.innerText = 'Steam Community Survey';
+		labels.title.innerText = authorData.title;
 		this.setDemographicQuestionsFromData();
 		this.setupDemographSelectBox();
 		this.drawTheDots();

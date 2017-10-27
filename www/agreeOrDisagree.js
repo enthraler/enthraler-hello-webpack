@@ -37,7 +37,7 @@ AgreeOrDisagree.prototype = {
 	,render: function(plainJsonData) {
 		var jsonStr = JSON.stringify(plainJsonData);
 		this.authorData = new tink_json_Parser0().parse(jsonStr);
-		this.labels.title.innerText = "Steam Community Survey";
+		this.labels.title.innerText = this.authorData.title;
 		this.setDemographicQuestionsFromData();
 		this.setupDemographSelectBox();
 		this.drawTheDots();
@@ -1081,6 +1081,8 @@ tink_json_Parser0.prototype = $extend(tink_json_BasicParser.prototype,{
 		var hasv_questions = false;
 		var v_responses = null;
 		var hasv_responses = false;
+		var v_title = null;
+		var hasv_title = false;
 		var __start__ = this.pos;
 		while(this.pos < this.max && this.source.charCodeAt(this.pos) < 33) this.pos++;
 		var tmp;
@@ -1118,7 +1120,10 @@ tink_json_Parser0.prototype = $extend(tink_json_BasicParser.prototype,{
 				if(!tmp2) {
 					this.die("Expected :");
 				}
-				if("responses".length == __name__.max - __name__.min && __name__.source.substring(__name__.min,__name__.max) == "responses") {
+				if("title".length == __name__.max - __name__.min && __name__.source.substring(__name__.min,__name__.max) == "title") {
+					v_title = tink_json__$Parser_JsonString_$Impl_$.toString(this.parseString());
+					hasv_title = true;
+				} else if("responses".length == __name__.max - __name__.min && __name__.source.substring(__name__.min,__name__.max) == "responses") {
 					while(this.pos < this.max && this.source.charCodeAt(this.pos) < 33) this.pos++;
 					var v_responses1;
 					if(this.max > this.pos && this.source.charCodeAt(this.pos) == 91) {
@@ -1309,7 +1314,7 @@ tink_json_Parser0.prototype = $extend(tink_json_BasicParser.prototype,{
 		var __missing__ = function(field) {
 			return _gthis.die("missing field \"" + field + "\"",__start__);
 		};
-		return { questions : hasv_questions ? v_questions : __missing__("questions"), responses : hasv_responses ? v_responses : __missing__("responses")};
+		return { questions : hasv_questions ? v_questions : __missing__("questions"), responses : hasv_responses ? v_responses : __missing__("responses"), title : hasv_title ? v_title : __missing__("title")};
 	}
 	,parse1: function() {
 		var _gthis = this;

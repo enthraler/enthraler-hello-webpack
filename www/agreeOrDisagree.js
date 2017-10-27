@@ -8,7 +8,7 @@ function $extend(from, fields) {
 	return proto;
 }
 var QuestionType = { __ename__ : true, __constructs__ : ["GroupedAnswer","GroupedWeightedAnswer","FreeText"] };
-QuestionType.GroupedAnswer = function(groups,defaultGroup,colors) { var $x = ["GroupedAnswer",0,groups,defaultGroup,colors]; $x.__enum__ = QuestionType; $x.toString = $estr; return $x; };
+QuestionType.GroupedAnswer = function(groups,defaultGroup,labelName,colors) { var $x = ["GroupedAnswer",0,groups,defaultGroup,labelName,colors]; $x.__enum__ = QuestionType; $x.toString = $estr; return $x; };
 QuestionType.GroupedWeightedAnswer = function(groups) { var $x = ["GroupedWeightedAnswer",1,groups]; $x.__enum__ = QuestionType; $x.toString = $estr; return $x; };
 QuestionType.FreeText = ["FreeText",2];
 QuestionType.FreeText.toString = $estr;
@@ -16,14 +16,6 @@ QuestionType.FreeText.__enum__ = QuestionType;
 var enthraler_HaxeTemplate = function() { };
 enthraler_HaxeTemplate.__name__ = true;
 var AgreeOrDisagree = function(environment) {
-	var _g = new haxe_ds_IntMap();
-	_g.h[0] = "Community";
-	_g.h[40] = "# of games";
-	_g.h[41] = "Revenue";
-	_g.h[42] = "# of employees";
-	_g.h[43] = "First release";
-	this.demographLabels = _g;
-	this.demographicQuestions = [null,0,40,41,42,43];
 	this.maxRadius = 12;
 	this.minRadius = 4;
 	this.padding = 6;
@@ -46,12 +38,36 @@ AgreeOrDisagree.prototype = {
 		var jsonStr = JSON.stringify(plainJsonData);
 		this.authorData = new tink_json_Parser0().parse(jsonStr);
 		this.labels.title.innerText = "Steam Community Survey";
+		this.setDemographicQuestionsFromData();
 		this.setupDemographSelectBox();
 		this.drawTheDots();
 		this.setDemographicQuestion(null);
 		this.toggleRadiusScaling(true);
 		this.showQuestion(null);
 		this.environment.requestHeightChange();
+	}
+	,setDemographicQuestionsFromData: function() {
+		this.demographicQuestions = [null];
+		this.demographLabels = new haxe_ds_IntMap();
+		var i = 0;
+		var _g = 0;
+		var _g1 = this.authorData.questions;
+		while(_g < _g1.length) {
+			var q = _g1[_g];
+			++_g;
+			var _g2 = q.type;
+			if(_g2[1] == 0) {
+				var colours = _g2[5];
+				var labelName = _g2[4];
+				var otherName = _g2[3];
+				var groups = _g2[2];
+				if(labelName != null) {
+					this.demographicQuestions.push(i);
+					this.demographLabels.set(i,labelName);
+				}
+			}
+			++i;
+		}
 	}
 	,setupDemographSelectBox: function() {
 		var _gthis = this;
@@ -170,7 +186,8 @@ AgreeOrDisagree.prototype = {
 			numGroups = groupsInQuestion.length;
 			var _g = this.authorData.questions[questionNumber].type;
 			if(_g[1] == 0) {
-				var colorsForGroup = _g[4];
+				var colorsForGroup = _g[5];
+				var label = _g[4];
 				var defaultGroup = _g[3];
 				var groups = _g[2];
 				colors = colorsForGroup;
@@ -494,18 +511,37 @@ var haxe_ds_IntMap = function() {
 };
 haxe_ds_IntMap.__name__ = true;
 haxe_ds_IntMap.__interfaces__ = [haxe_IMap];
+haxe_ds_IntMap.prototype = {
+	set: function(key,value) {
+		this.h[key] = value;
+	}
+};
 var haxe_ds_ObjectMap = function() {
 	this.h = { __keys__ : { }};
 };
 haxe_ds_ObjectMap.__name__ = true;
 haxe_ds_ObjectMap.__interfaces__ = [haxe_IMap];
+haxe_ds_ObjectMap.prototype = {
+	set: function(key,value) {
+		var id = key.__id__ || (key.__id__ = ++haxe_ds_ObjectMap.count);
+		this.h[id] = value;
+		this.h.__keys__[id] = key;
+	}
+};
 var haxe_ds_StringMap = function() {
 	this.h = { };
 };
 haxe_ds_StringMap.__name__ = true;
 haxe_ds_StringMap.__interfaces__ = [haxe_IMap];
 haxe_ds_StringMap.prototype = {
-	setReserved: function(key,value) {
+	set: function(key,value) {
+		if(__map_reserved[key] != null) {
+			this.setReserved(key,value);
+		} else {
+			this.h[key] = value;
+		}
+	}
+	,setReserved: function(key,value) {
 		if(this.rh == null) {
 			this.rh = { };
 		}
@@ -1380,7 +1416,7 @@ tink_json_Parser0.prototype = $extend(tink_json_BasicParser.prototype,{
 			var __ret = this.parse4();
 			var o = __ret.GroupedAnswer;
 			if(o != null) {
-				return QuestionType.GroupedAnswer(o.groups,o.defaultGroup,o.colors);
+				return QuestionType.GroupedAnswer(o.groups,o.defaultGroup,o.labelName,o.colors);
 			} else {
 				var o1 = __ret.GroupedWeightedAnswer;
 				if(o1 != null) {
@@ -1590,6 +1626,7 @@ tink_json_Parser0.prototype = $extend(tink_json_BasicParser.prototype,{
 		var v_colors = null;
 		var v_defaultGroup = null;
 		var v_groups = null;
+		var v_labelName = null;
 		var __start__ = this.pos;
 		while(this.pos < this.max && this.source.charCodeAt(this.pos) < 33) this.pos++;
 		var tmp;
@@ -1627,7 +1664,22 @@ tink_json_Parser0.prototype = $extend(tink_json_BasicParser.prototype,{
 				if(!tmp2) {
 					this.die("Expected :");
 				}
-				if("groups".length == __name__.max - __name__.min && __name__.source.substring(__name__.min,__name__.max) == "groups") {
+				if("labelName".length == __name__.max - __name__.min && __name__.source.substring(__name__.min,__name__.max) == "labelName") {
+					while(this.pos < this.max && this.source.charCodeAt(this.pos) < 33) this.pos++;
+					var v_labelName1;
+					if(this.max > this.pos + 3 && this.source.charCodeAt(this.pos) == 110 && this.source.charCodeAt(this.pos + 1) == 117 && this.source.charCodeAt(this.pos + 2) == 108 && this.source.charCodeAt(this.pos + 3) == 108) {
+						this.pos += 4;
+						while(this.pos < this.max && this.source.charCodeAt(this.pos) < 33) this.pos++;
+						v_labelName1 = true;
+					} else {
+						v_labelName1 = false;
+					}
+					if(v_labelName1) {
+						v_labelName = null;
+					} else {
+						v_labelName = tink_json__$Parser_JsonString_$Impl_$.toString(this.parseString());
+					}
+				} else if("groups".length == __name__.max - __name__.min && __name__.source.substring(__name__.min,__name__.max) == "groups") {
 					while(this.pos < this.max && this.source.charCodeAt(this.pos) < 33) this.pos++;
 					var v_groups1;
 					if(this.max > this.pos + 3 && this.source.charCodeAt(this.pos) == 110 && this.source.charCodeAt(this.pos + 1) == 117 && this.source.charCodeAt(this.pos + 2) == 108 && this.source.charCodeAt(this.pos + 3) == 108) {
@@ -1851,7 +1903,7 @@ tink_json_Parser0.prototype = $extend(tink_json_BasicParser.prototype,{
 		var __missing__ = function(field) {
 			return _gthis.die("missing field \"" + field + "\"",__start__);
 		};
-		return { colors : v_colors, defaultGroup : v_defaultGroup, groups : v_groups};
+		return { colors : v_colors, defaultGroup : v_defaultGroup, groups : v_groups, labelName : v_labelName};
 	}
 	,parse6: function() {
 		var _gthis = this;
@@ -2006,6 +2058,7 @@ $global.define(["cdnjs/d3/3.5.17/d3.min","cdnjs/hammer.js/2.0.8/hammer.min","css
 String.__name__ = true;
 Array.__name__ = true;
 var __map_reserved = {};
+haxe_ds_ObjectMap.count = 0;
 })(typeof window != "undefined" ? window : typeof global != "undefined" ? global : typeof self != "undefined" ? self : this);
 
 //# sourceMappingURL=agreeOrDisagree.js.map

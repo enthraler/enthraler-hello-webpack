@@ -18,7 +18,7 @@ typedef Question = {
 }
 
 enum QuestionType {
-    GroupedAnswer(?groups: Array<String>, ?defaultGroup: String, ?colors: Map<String, String>);
+    GroupedAnswer(?groups: Array<String>, ?defaultGroup: String, ?labelName: String, ?colors: Map<String, String>);
     GroupedWeightedAnswer(groups: ResponseGroups);
     FreeText;
 }
@@ -109,7 +109,8 @@ class AgreeOrDisagree implements HaxeTemplate<AuthorData> {
 	var force: Force; // See https://github.com/d3/d3-3.x-api-reference/blob/master/Force-Layout.md
 
 	// Steam Survey specific stuff
-	var demographicQuestions = [null, 0, 40, 41, 42, 43];
+	var demographicQuestions:Array<Null<Int>>;
+	var demographLabels:Map<Int,String>;
 
 	public function new(environment:Environment) {
 		environment.container.innerHTML = '<div id="ui-container">
@@ -152,6 +153,7 @@ class AgreeOrDisagree implements HaxeTemplate<AuthorData> {
 		var jsonStr = haxe.Json.stringify(plainJsonData);
 		this.authorData = tink.Json.parse(jsonStr);
 		labels.title.innerText = 'Steam Community Survey';
+		this.setDemographicQuestionsFromData();
 		this.setupDemographSelectBox();
 		this.drawTheDots();
 		this.setDemographicQuestion(null);
@@ -161,14 +163,23 @@ class AgreeOrDisagree implements HaxeTemplate<AuthorData> {
 		environment.requestHeightChange();
 	}
 
-	// TODO: make this configurable in authordata
-	var demographLabels = [
-			0 => "Community",
-			40 => "# of games",
-			41 => "Revenue",
-			42 => "# of employees",
-			43 => "First release"
-	];
+	function setDemographicQuestionsFromData() {
+		this.demographicQuestions = [null];
+		this.demographLabels = new Map();
+
+		var i = 0;
+		for (q in this.authorData.questions) {
+			switch q.type {
+				case GroupedAnswer(groups, otherName, labelName, colours):
+					if (labelName != null) {
+						this.demographicQuestions.push(i);
+						this.demographLabels[i] = labelName;
+					}
+				default:
+			}
+			i++;
+		}
+	}
 
 	function setupDemographSelectBox() {
 		var selectOptions = demographicQuestions.map(function (i) {
@@ -322,7 +333,7 @@ class AgreeOrDisagree implements HaxeTemplate<AuthorData> {
 			numGroups = groupsInQuestion.length;
 			colors = switch authorData.questions[questionNumber].type {
 				// For now, we're only allowing GroupedAnswer questions to be used as demographics.
-				case GroupedAnswer(groups, defaultGroup, colorsForGroup): colorsForGroup;
+				case GroupedAnswer(groups, defaultGroup, label, colorsForGroup): colorsForGroup;
 				case _: null;
 			}
 		}

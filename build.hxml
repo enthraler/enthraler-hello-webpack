@@ -1,8 +1,9 @@
 -lib tink_macro
 -lib tink_json
 -lib d3-extern
+-lib enthraler
 -cp src
--cp /home/jason/workspace/enthraler/src/
 -js www/agreeOrDisagree.js
 AgreeOrDisagree
 -dce full
+-debug

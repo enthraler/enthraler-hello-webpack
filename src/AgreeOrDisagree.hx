@@ -50,8 +50,10 @@ typedef CircleNode = {
 	cy: Float,
 };
 
-extern class D3Tip {
-
+extern class D3Tip extends js.d3.selection.Selection {
+	@:selfCall public function new();
+	public function show(data: Dynamic, i: Dynamic): D3Tip;
+	public function hide(data: Dynamic): D3Tip;
 }
 
 extern class Hammer {
@@ -65,11 +67,11 @@ extern class Hammer {
 	We define `Hello` as the class to export in build.hxml.
 	Enthraler components need an AMD definition, and if you implement the `HaxeTemplate` class, it will generate an AMD definition for you.
 
-	It will also take care of loading dependencies if you add `@:enthralDependency('amdPath', HaxeExtern)`.
+	It will also take care of loading dependencies if you add `@:enthralDependency('amdPath', HaxeExtern, ?name)`.
 	Note: the macro will overwrite the `@:native` metadata on any externs to a custom global variable, and set that variable during the define function.
 **/
-@:enthralerDependency('cdnjs/d3/3.5.17/d3.min', D3)
-// @:enthralerDependency('cdnjs/d3-tip/0.7.1/d3-tip.min', D3Tip)
+@:enthralerDependency('cdnjs/d3/3.5.17/d3.min', D3, 'd3')
+@:enthralerDependency('cdnjs/d3-tip/0.7.1/d3-tip.min', D3Tip)
 @:enthralerDependency('cdnjs/hammer.js/2.0.8/hammer.min', Hammer)
 @:enthralerDependency('css!agreeOrDisagree.css')
 @:enthralerDependency('css!cdnjs/font-awesome/4.7.0/css/font-awesome.css')
@@ -102,6 +104,7 @@ class AgreeOrDisagree implements HaxeTemplate<AuthorData> {
 
 	// D3 stuff
 	var svg: Selection;
+	var tip: D3Tip;
 	var circle: Selection;
 	var nodes: Array<CircleNode>;
 	var groupLabels: Selection;
@@ -232,6 +235,15 @@ class AgreeOrDisagree implements HaxeTemplate<AuthorData> {
 			.attr("width", width)
 			.attr("height", height)
 			.attr("viewBox", [0, 0, width, height].join(','));
+
+		this.tip = new D3Tip();
+		tip
+			.attr('class', 'd3-tip')
+			.html(function(d: CircleNode) {
+				return d.tooltip;
+			});
+
+		svg.call(tip);
 
 		updateCircles();
 
@@ -483,13 +495,12 @@ class AgreeOrDisagree implements HaxeTemplate<AuthorData> {
 			// Note, we are casting to dynamic to avoid Haxe binding `force.drag` to `force`.
 			// In this case we actually want JS's super weird behaviour of making "this" bind to whatever the hell it's attached to when it's called.
 			.call((force:Dynamic).drag)
-			.append("title");
-
-		// Add a tooltip
-		this.circle
-			.select("title")
-			.text(function (d: CircleNode) {
-				return d.tooltip;
+			.on('mouseover', function (data: CircleNode, i) {
+				if (data.tooltip != "")
+					this.tip.show(data, i);
+			})
+			.on('mouseout', function (data: CircleNode) {
+				this.tip.hide(data);
 			});
 
 		// Delete circles that no longer need to be here

@@ -97,6 +97,11 @@ AgreeOrDisagree.prototype = {
 		});
 		this.force = js_d3_D3.layout.force().nodes(this.nodes).size([this.width,this.height]);
 		this.svg = js_d3_D3.select("#d3-container").append("svg").attr("width",this.width).attr("height",this.height).attr("viewBox",[0,0,this.width,this.height].join(","));
+		this.tip = D3Tip();
+		this.tip.attr("class","d3-tip").html(function(d) {
+			return d.tooltip;
+		});
+		this.svg.call(this.tip);
 		this.updateCircles();
 		this.force.gravity(0).charge(0).on("tick",$bind(this,this.tick)).start();
 		var q = -1;
@@ -342,6 +347,7 @@ AgreeOrDisagree.prototype = {
 		});
 	}
 	,updateCircles: function() {
+		var _gthis = this;
 		this.circle = this.svg.selectAll("circle").data(this.nodes).attr("r",function(d) {
 			return d.radius;
 		}).style("fill",function(d1) {
@@ -351,9 +357,12 @@ AgreeOrDisagree.prototype = {
 			return d2.radius;
 		}).style("fill",function(d3) {
 			return d3.color;
-		}).call(this.force.drag).append("title");
-		this.circle.select("title").text(function(d4) {
-			return d4.tooltip;
+		}).call(this.force.drag).on("mouseover",function(data,i) {
+			if(data.tooltip != "") {
+				_gthis.tip.show(data,i);
+			}
+		}).on("mouseout",function(data1) {
+			_gthis.tip.hide(data1);
 		});
 		this.circle.exit().remove();
 		this.force.resume();
@@ -2055,8 +2064,10 @@ tink_json_Value.VArray = function(a) { var $x = ["VArray",4,a]; $x.__enum__ = ti
 tink_json_Value.VObject = function(a) { var $x = ["VObject",5,a]; $x.__enum__ = tink_json_Value; $x.toString = $estr; return $x; };
 var $_, $fid = 0;
 function $bind(o,m) { if( m == null ) return null; if( m.__id__ == null ) m.__id__ = $fid++; var f; if( o.hx__closures__ == null ) o.hx__closures__ = {}; else f = o.hx__closures__[m.__id__]; if( f == null ) { f = function(){ return f.method.apply(f.scope, arguments); }; f.scope = o; f.method = m; o.hx__closures__[m.__id__] = f; } return f; }
-$global.define(["cdnjs/d3/3.5.17/d3.min","cdnjs/hammer.js/2.0.8/hammer.min","css!agreeOrDisagree.css","css!cdnjs/font-awesome/4.7.0/css/font-awesome.css"],function(js_d3_D3,Hammer,_,_1) {
+$global.requirejs.config({ map : { "*" : { d3 : "cdnjs/d3/3.5.17/d3.min"}}});
+$global.define(["cdnjs/d3/3.5.17/d3.min","cdnjs/d3-tip/0.7.1/d3-tip.min","cdnjs/hammer.js/2.0.8/hammer.min","css!agreeOrDisagree.css","css!cdnjs/font-awesome/4.7.0/css/font-awesome.css"],function(js_d3_D3,D3Tip,Hammer,_,_1) {
 	$global.js_d3_D3 = js_d3_D3;
+	$global.D3Tip = D3Tip;
 	$global.Hammer = Hammer;
 	return AgreeOrDisagree;
 });
